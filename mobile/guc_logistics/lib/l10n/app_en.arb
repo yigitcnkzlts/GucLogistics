@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "GucLogistics",
+  "login": "Sign in",
+  "register": "Create account",
+  "email": "Email",
+  "password": "Password",
+  "loads": "Loads",
+  "offers": "Offers",
+  "profile": "Profile",
+  "logout": "Sign out",
+  "role": "Role",
+  "submitOffer": "Submit offer",
+  "offlineBanner": "You are offline. Showing cached loads."
+}

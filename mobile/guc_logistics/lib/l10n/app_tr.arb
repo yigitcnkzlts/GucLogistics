@@ -1,0 +1,15 @@
+{
+  "@@locale": "tr",
+  "appTitle": "GucLogistics",
+  "login": "Giriş yap",
+  "register": "Hesap oluştur",
+  "email": "E-posta",
+  "password": "Şifre",
+  "loads": "Yükler",
+  "offers": "Teklifler",
+  "profile": "Profil",
+  "logout": "Çıkış yap",
+  "role": "Rol",
+  "submitOffer": "Teklif ver",
+  "offlineBanner": "Çevrimdışısınız. Önbellekteki yükler gösteriliyor."
+}
