@@ -1,0 +1,26 @@
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+COPY backend/pom.xml backend/pom.xml
+COPY backend/guc-shared backend/guc-shared
+COPY backend/guc-identity-access backend/guc-identity-access
+COPY backend/guc-users backend/guc-users
+COPY backend/guc-companies backend/guc-companies
+COPY backend/guc-drivers backend/guc-drivers
+COPY backend/guc-vehicles backend/guc-vehicles
+COPY backend/guc-verification backend/guc-verification
+COPY backend/guc-loads backend/guc-loads
+COPY backend/guc-offers backend/guc-offers
+COPY backend/guc-matching backend/guc-matching
+COPY backend/guc-notifications backend/guc-notifications
+COPY backend/guc-audit backend/guc-audit
+COPY backend/guc-api backend/guc-api
+WORKDIR /workspace/backend
+RUN mvn -q -DskipTests package
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+RUN addgroup -S guc && adduser -S guc -G guc
+COPY --from=build /workspace/backend/guc-api/target/guc-api-*.jar /app/app.jar
+USER guc
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
