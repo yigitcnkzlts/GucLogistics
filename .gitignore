@@ -5,6 +5,8 @@
 *.class
 *.jar
 *.war
+*.LCKpom.xml~
+backend/verify-*.txt
 
 # IDE
 .idea/
