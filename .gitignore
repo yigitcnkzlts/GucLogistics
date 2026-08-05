@@ -1,0 +1,38 @@
+# Build
+**/target/
+**/build/
+**/.gradle/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime data
+data/
+uploads/
+*.log
+
+# Flutter
+mobile/guc_logistics/.dart_tool/
+mobile/guc_logistics/.flutter-plugins
+mobile/guc_logistics/.flutter-plugins-dependencies
+mobile/guc_logistics/.packages
+mobile/guc_logistics/pubspec.lock
+mobile/guc_logistics/.idea/
+mobile/guc_logistics/**/Generated.xcconfig
+mobile/guc_logistics/**/Flutter.podspec
+mobile/guc_logistics/build/
