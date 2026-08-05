@@ -1,37 +1,47 @@
-# GucLogistics Security
-
-## Authentication
-
-- Argon2id password hashing
-- JWT access tokens (15 minutes) + opaque refresh tokens (7 days)
-- Refresh rotation with reuse detection (session family revoke)
-- TOTP MFA enrollment/verify/disable; optional global requirement via `mfa.required` feature flag
-
-## Authorization
-
-- Role-based access control (`SHIPPER`, `LOGISTICS_COMPANY`, `INDEPENDENT_DRIVER`, `FLEET_OWNER`, `ADMIN`, `SUPPORT`, `MODERATOR`)
-- Method security (`@PreAuthorize`) + resource ownership checks (IDOR prevention)
-
-## Abuse protection
-
-- Redis sliding-window rate limits on register/login/MFA
-- Failed login tracking and temporary account lockout
-- Suspicious login / new device notifications + audit events
-
-## Transport & headers
-
-- Production TLS + HSTS expected at edge
-- `X-Content-Type-Options`, `X-Frame-Options: DENY`, strict CSP, `Referrer-Policy`
-- Correlation ID on every request (`X-Correlation-Id`)
-
-## Uploads
-
-- Apache Tika MIME sniffing
-- Allowlist: PDF, JPEG, PNG
-- Size limit 5MB
-- `VirusScanPort` with no-op adapter (replaceable)
+# Security Guide
 
 ## Secrets
 
-- Injected via environment variables (`JWT_SECRET`, `ENCRYPTION_KEY`, DB credentials)
-- Never committed to the repository
+Required environment variables (no defaults in base `application.yml`):
+
+- `DB_URL`, `DB_USER`, `DB_PASSWORD`
+- `REDIS_HOST`, `REDIS_PORT`
+- `JWT_SECRET` (≥ 32 bytes)
+- `ENCRYPTION_KEY` (Base64 32-byte AES key)
+- `GUC_STORAGE_PATH` (required in prod)
+
+Validated by `com.guclogistics.config.EnvironmentValidator`. Production additionally rejects weak/default-looking values.
+
+Copy `.env.example` → `.env` for local Compose. Never commit `.env`.
+
+## Authentication & sessions
+
+| Control | Implementation |
+|---------|----------------|
+| Password hash | Argon2id (`SecurityConfig`) |
+| Access token | JWT 15m (`JwtService`) |
+| Refresh | Opaque token, hashed in `user_sessions`, rotation + reuse detection |
+| MFA | TOTP + AES-GCM encrypted secret + hashed recovery codes |
+| Rate limit | Redis sliding window (`RateLimitService`) |
+| Lockout | `login_attempts` + `users.locked_until` |
+| Sessions/devices | List/revoke APIs |
+
+## Transport
+
+- Production: terminate TLS at proxy; `guc.security.hsts-enabled=true` emits HSTS
+- Security headers: nosniff, DENY frame, CSP, Referrer-Policy (`SecurityHeadersFilter`)
+
+## Authorization
+
+- JWT roles → `ROLE_*` authorities
+- Method security enabled; moderation/admin endpoints use `@PreAuthorize`
+- Resource ownership enforced in application services (IDOR unit-tested)
+
+## Uploads
+
+- Apache Tika MIME allowlist (PDF/JPEG/PNG), 5MB limit
+- `VirusScanPort` with no-op adapter (replace in production)
+
+## Auditing
+
+Critical auth and marketplace events → `audit_logs` via `AuditEventListener`.

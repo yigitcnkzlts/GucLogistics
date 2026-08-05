@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@ActiveProfiles("test")
 @EnabledIfSystemProperty(named = "guc.integration", matches = "true")
 class AuthFlowIntegrationTest {
 
@@ -51,6 +53,14 @@ class AuthFlowIntegrationTest {
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
         registry.add("guc.security.jwt.secret", () -> "test-secret-must-be-at-least-32-bytes-long!!");
         registry.add("guc.security.encryption-key", () -> "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");
+        // Explicit env-style aliases documented for operators
+        registry.add("DB_URL", postgres::getJdbcUrl);
+        registry.add("DB_USER", postgres::getUsername);
+        registry.add("DB_PASSWORD", postgres::getPassword);
+        registry.add("REDIS_HOST", redis::getHost);
+        registry.add("REDIS_PORT", () -> String.valueOf(redis.getMappedPort(6379)));
+        registry.add("JWT_SECRET", () -> "test-secret-must-be-at-least-32-bytes-long!!");
+        registry.add("ENCRYPTION_KEY", () -> "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");
     }
 
     @Autowired
@@ -150,5 +160,33 @@ class AuthFlowIntegrationTest {
                                 }
                                 """.formatted(email)))
                 .andExpect(status().isLocked());
+    }
+
+    @Test
+    void registerRateLimitEventuallyReturns429() throws Exception {
+        String ip = "203.0.113." + (System.nanoTime() % 250);
+        String registerTemplate = """
+                {
+                  "email": "ratelimit+%d@example.com",
+                  "password": "SecurePass123!",
+                  "role": "SHIPPER",
+                  "deviceFingerprint": "rl-device",
+                  "platform": "WEB"
+                }
+                """;
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .header("X-Forwarded-For", ip)
+                            .content(registerTemplate.formatted(System.nanoTime() + i)))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Forwarded-For", ip)
+                        .content(registerTemplate.formatted(System.nanoTime())))
+                .andExpect(status().isTooManyRequests());
     }
 }

@@ -1,46 +1,49 @@
 # GucLogistics
 
-Enterprise logistics marketplace connecting shippers, logistics companies, and independent drivers.
+Enterprise logistics marketplace platform (modular Spring Boot monolith + Flutter client).
 
-## Stack
+## Documentation
 
-- **Backend:** Java 21, Spring Boot 3.3, PostgreSQL 16, Redis 7 (modular monolith)
-- **Mobile:** Flutter (Android + iOS)
-- **Infra:** Docker Compose, GitHub Actions
+| Guide | Path |
+|-------|------|
+| Architecture | [docs/architecture.md](docs/architecture.md) |
+| Security | [docs/security.md](docs/security.md) |
+| OWASP analysis | [docs/owasp-top10-analysis.md](docs/owasp-top10-analysis.md) |
+| Deployment | [docs/deployment.md](docs/deployment.md) |
+| API | [docs/api-guide.md](docs/api-guide.md) |
+| Recovery | [docs/recovery.md](docs/recovery.md) |
 
-## Quick start (local)
+## Quick start
 
 ```bash
-# Infrastructure + API
-cd docker
-docker compose up --build
+cp .env.example .env
+# Set DB_PASSWORD, JWT_SECRET (>=32 bytes), ENCRYPTION_KEY (openssl rand -base64 32)
 
-# API: http://localhost:8080
-# Swagger: http://localhost:8080/swagger-ui.html
+cd docker
+docker compose --env-file ../.env up --build
 ```
 
-Backend only (requires local Postgres + Redis):
+Backend tests:
 
 ```bash
 cd backend
-mvn -pl guc-api -am spring-boot:run
+mvn -B verify                 # unit tests + JaCoCo >= 80% per module
+mvn -B verify -Dguc.integration=true   # + Testcontainers E2E (Docker required)
 ```
 
-Mobile:
+## Security baseline
 
-```bash
-cd mobile/guc_logistics
-flutter pub get
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+- No secrets in source; runtime requires env vars (`EnvironmentValidator`)
+- Prod profile enables HSTS and rejects weak defaults
+- JWT access + rotating refresh tokens, Argon2id, TOTP MFA, Redis rate limits
+- CI: build/test/coverage, dependency-check, SpotBugs, gitleaks, Docker image artifact
+
+## Repository layout
+
 ```
-
-## Phases delivered
-
-1. Secure auth foundation (JWT, RBAC, MFA, audit, rate limit, CI)
-2. Companies, drivers, vehicles, verification
-3. Loads, offers, matching
-4. Flutter MVP client
-
-## Security notes
-
-See [docs/security.md](docs/security.md). Never commit real secrets; use `.env.example` as a template.
+backend/   Maven modules (guc-*)
+mobile/    Flutter MVP client
+docker/    Compose + API Dockerfile
+docs/      Architecture & ops guides
+.github/   CI workflows
+```

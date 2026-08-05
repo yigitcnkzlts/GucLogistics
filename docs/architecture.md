@@ -1,33 +1,25 @@
-# GucLogistics Architecture
+# Architecture
 
 ## Style
 
-Modular monolith (Spring Boot) with Clean Architecture + DDD bounded contexts.
+Modular monolith (Spring Boot 3.3 / Java 21) with Clean Architecture packaging per bounded context.
 
 ## Modules
 
-| Module | Responsibility |
-|--------|----------------|
-| guc-shared | Shared kernel, events, exceptions, pagination, feature flags, outbox |
-| guc-identity-access | Auth, JWT, MFA, sessions, devices, RBAC |
-| guc-users | User profile views |
-| guc-companies | Shipper / logistics companies |
-| guc-drivers | Driver profiles |
-| guc-vehicles | Vehicle registry |
-| guc-verification | KYC-style verification + document upload |
-| guc-loads | Freight load lifecycle |
-| guc-offers | Bidding on loads |
-| guc-matching | Accepted offer → match |
-| guc-notifications | In-app notifications |
-| guc-audit | Immutable audit trail |
-| guc-api | Composition root |
+`guc-shared`, `guc-identity-access`, `guc-users`, `guc-companies`, `guc-drivers`, `guc-vehicles`, `guc-verification`, `guc-loads`, `guc-offers`, `guc-matching`, `guc-notifications`, `guc-audit`, `guc-api` (composition root).
 
-## Communication rules
+## Rules
 
-- No cross-module repository access.
-- Integration via domain events (Spring ApplicationEvents + outbox table) and narrow ports.
-- Single PostgreSQL database; Flyway migrations versioned per module (`V1`…`V11`).
+- No cross-module repository access
+- Integration via domain events (`DomainEventPublisher` + `outbox_events` write) and narrow ports
+- Single PostgreSQL; Flyway `V1`–`V11`
+- Redis for rate limiting
 
-## Future extraction
+## Quality gates
 
-Bounded contexts are packaged as Maven modules so they can be extracted into microservices with an outbox → broker adapter without rewriting domain logic.
+- Per-module JaCoCo line coverage ≥ 80% (with documented excludes for DTOs/entities/controllers)
+- CI: verify + integration tests, dependency-check, SpotBugs, gitleaks, Docker image artifact
+
+## Client
+
+Flutter app under `mobile/guc_logistics` (secure storage, refresh interceptor, Hive offline loads cache).

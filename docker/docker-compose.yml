@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: guclogistics
-      POSTGRES_USER: guc
-      POSTGRES_PASSWORD: guc_secret_change_me
+      POSTGRES_DB: ${POSTGRES_DB:-guclogistics}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - guc_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U guc -d guclogistics"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,17 +29,23 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+    env_file:
+      - ../.env
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/guclogistics
-      DB_USER: guc
-      DB_PASSWORD: guc_secret_change_me
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-guclogistics}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: docker-dev-only-change-me-32bytes-min!!
-      ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      GUC_STORAGE_PATH: /app/data/uploads
       SERVER_PORT: 8080
     ports:
       - "8080:8080"
+    volumes:
+      - guc_uploads:/app/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,3 +54,4 @@ services:
 
 volumes:
   guc_pg_data:
+  guc_uploads:

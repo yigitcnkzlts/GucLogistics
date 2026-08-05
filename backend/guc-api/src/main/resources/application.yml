@@ -1,10 +1,12 @@
 spring:
   application:
     name: guc-logistics-api
+  profiles:
+    default: dev
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/guclogistics}
-    username: ${DB_USER:guc}
-    password: ${DB_PASSWORD:guc_secret_change_me}
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -15,8 +17,8 @@ spring:
           time_zone: UTC
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -52,27 +54,15 @@ guc:
     jwt:
       issuer: guclogistics
       audience: guclogistics-api
-      secret: ${JWT_SECRET:dev-only-change-me-to-a-32byte-minimum-secret!!}
-      access-token-minutes: 15
-      refresh-token-days: 7
-      mfa-token-minutes: 5
-    encryption-key: ${ENCRYPTION_KEY:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      secret: ${JWT_SECRET}
+      access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES:15}
+      refresh-token-days: ${JWT_REFRESH_TOKEN_DAYS:7}
+      mfa-token-minutes: ${JWT_MFA_TOKEN_MINUTES:5}
+    encryption-key: ${ENCRYPTION_KEY}
+    hsts-enabled: false
   storage:
     local-path: ${GUC_STORAGE_PATH:./data/uploads}
 
 logging:
   pattern:
     console: "%d{ISO8601} [%thread] %-5level %logger{36} correlationId=%X{correlationId} - %msg%n"
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-guc:
-  security:
-    jwt:
-      secret: ${JWT_SECRET}
-    encryption-key: ${ENCRYPTION_KEY}
-server:
-  forward-headers-strategy: framework

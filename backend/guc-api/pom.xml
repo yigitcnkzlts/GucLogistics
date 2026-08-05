@@ -114,6 +114,29 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>com/guclogistics/GucLogisticsApplication.class</exclude>
+                                <exclude>**/dto/**</exclude>
+                                <exclude>**/domain/event/**</exclude>
+                                <exclude>**/shared/events/**</exclude>
+                                <exclude>**/config/OpenApiConfig.class</exclude>
+                                <exclude>**/config/CorsConfig.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
