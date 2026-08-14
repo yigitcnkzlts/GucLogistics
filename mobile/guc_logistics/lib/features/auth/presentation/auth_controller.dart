@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_repository.dart';
+import '../domain/user_role.dart';
 
 class AuthState {
   const AuthState({
@@ -53,7 +54,7 @@ class AuthController extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> login(String email, String password) async {
+  Future<bool> login(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final result = await _repository.login(email: email, password: password);
@@ -63,23 +64,28 @@ class AuthController extends StateNotifier<AuthState> {
         email: email,
         roles: (result['roles'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       );
+      return true;
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString(), isAuthenticated: false);
+      return false;
     }
   }
 
-  Future<void> register(String email, String password, String role) async {
+  Future<bool> register(String email, String password, UserRole role) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final result = await _repository.register(email: email, password: password, role: role);
+      await _repository.persistRoleApi(role);
       state = AuthState(
         loading: false,
         isAuthenticated: true,
         email: email,
-        roles: (result['roles'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+        roles: (result['roles'] as List?)?.map((e) => e.toString()).toList() ?? [role.apiValue],
       );
+      return true;
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString(), isAuthenticated: false);
+      return false;
     }
   }
 

@@ -23,8 +23,9 @@ backend/verify-*.txt
 .DS_Store
 Thumbs.db
 
-# Runtime data
-data/
+# Runtime data (backend local stores only — not Flutter source under lib/)
+/data/
+backend/**/data/
 uploads/
 *.log
 

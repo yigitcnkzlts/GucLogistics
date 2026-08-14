@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../config/app_config.dart';
+
 class ApiClient {
   ApiClient({
     required FlutterSecureStorage storage,
-    String baseUrl = const String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'http://10.0.2.2:8080',
-    ),
+    String? baseUrl,
   }) : _storage = storage {
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 15),
+      baseUrl: baseUrl ?? AppConfig.apiBaseUrl,
+      connectTimeout: const Duration(seconds: 12),
       receiveTimeout: const Duration(seconds: 20),
       headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
     ));
@@ -32,8 +31,10 @@ class ApiClient {
             final token = await _storage.read(key: 'access_token');
             final req = error.requestOptions;
             req.headers['Authorization'] = 'Bearer $token';
-            final response = await _dio.fetch(req);
-            return handler.resolve(response);
+            try {
+              final response = await _dio.fetch(req);
+              return handler.resolve(response);
+            } catch (_) {}
           }
         }
         handler.next(error);
@@ -48,16 +49,15 @@ class ApiClient {
 
   Future<bool> _tryRefresh() async {
     final refresh = await _storage.read(key: 'refresh_token');
-    if (refresh == null || refresh.isEmpty) {
-      return false;
-    }
+    if (refresh == null || refresh.isEmpty) return false;
     try {
       final response = await _dio.post('/api/v1/auth/refresh', data: {'refreshToken': refresh});
       await _storage.write(key: 'access_token', value: response.data['accessToken'] as String);
       await _storage.write(key: 'refresh_token', value: response.data['refreshToken'] as String);
       return true;
     } catch (_) {
-      await _storage.deleteAll();
+      await _storage.delete(key: 'access_token');
+      await _storage.delete(key: 'refresh_token');
       return false;
     }
   }
