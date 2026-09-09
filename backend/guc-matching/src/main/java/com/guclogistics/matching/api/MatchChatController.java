@@ -52,7 +52,7 @@ public class MatchChatController {
                 Instant.now()
         );
         store.compute(matchId, (id, list) -> {
-            var next = list == null ? new ArrayList<ChatMessageDto>() : new ArrayList<>(list);
+            List<ChatMessageDto> next = list == null ? new ArrayList<>() : new ArrayList<>(list);
             next.add(msg);
             return next;
         });

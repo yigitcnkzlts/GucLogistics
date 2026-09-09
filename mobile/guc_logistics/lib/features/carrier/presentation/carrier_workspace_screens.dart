@@ -94,6 +94,16 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
     _a = MockData.carrierAvailability;
   }
 
+  Future<void> _pickWindow({required bool from}) async {
+    final initial = (from ? _a.availableFrom : _a.availableUntil) ?? DateTime.now().add(Duration(hours: from ? 1 : 25));
+    final date = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 180)));
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+    if (time == null || !mounted) return;
+    final value = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    setState(() => _a = from ? _a.copyWith(availableFrom: value) : _a.copyWith(availableUntil: value));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -105,13 +115,19 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
       body: ListView(
         padding: const EdgeInsets.all(GucSpacing.md),
         children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.availableForLoads),
-            subtitle: Text(l10n.availableForLoadsHint),
-            value: _a.available,
-            onChanged: (v) => setState(() => _a = _a.copyWith(available: v)),
+          GucCard(
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: Icon(_a.available ? Icons.check_circle : Icons.pause_circle, color: _a.available ? Colors.green : Colors.orange),
+              title: Text(l10n.availableForLoads, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(l10n.availableForLoadsHint),
+              value: _a.available,
+              onChanged: (v) => setState(() => _a = _a.copyWith(available: v)),
+            ),
           ),
+          const SizedBox(height: GucSpacing.md),
+          Text('Konum ve uygunluk penceresi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
             value: _a.country,
             decoration: InputDecoration(labelText: l10n.country),
@@ -123,6 +139,29 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
               setState(() => _a = _a.copyWith(country: v, region: r, city: city));
             },
           ),
+          const SizedBox(height: GucSpacing.sm),
+          Row(children: [
+            Expanded(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.play_circle_outline),
+                title: const Text('Başlangıç'),
+                subtitle: Text(_a.availableFrom == null ? 'Şimdi' : DateFormat('dd.MM HH:mm').format(_a.availableFrom!)),
+                onTap: () => _pickWindow(from: true),
+              ),
+            ),
+            Expanded(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.stop_circle_outlined),
+                title: const Text('Bitiş'),
+                subtitle: Text(_a.availableUntil == null ? 'Süresiz' : DateFormat('dd.MM HH:mm').format(_a.availableUntil!)),
+                onTap: () => _pickWindow(from: false),
+              ),
+            ),
+          ]),
+          const SizedBox(height: GucSpacing.md),
+          Text('Araç ve rota tercihleri', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
             value: regions.contains(_a.region) ? _a.region : regions.first,
@@ -164,6 +203,20 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
                 .toList(),
             onChanged: (v) => setState(() => _a = _a.copyWith(vehicleFilter: v)),
           ),
+          const SizedBox(height: GucSpacing.sm),
+          DropdownButtonFormField<String>(
+            value: EuropeGeo.countries.contains(_a.preferredDestination) ? _a.preferredDestination : 'Any',
+            decoration: const InputDecoration(labelText: 'Tercih edilen varış ülkesi'),
+            items: [const DropdownMenuItem(value: 'Any', child: Text('Farketmez')), ...EuropeGeo.countries.map((c) => DropdownMenuItem(value: c, child: Text(EuropeGeo.countryLabel(c))))],
+            onChanged: (v) => setState(() => _a = _a.copyWith(preferredDestination: v)),
+          ),
+          const SizedBox(height: GucSpacing.md),
+          Text('Kapasite: ${(_a.capacityKg / 1000).toStringAsFixed(0)} ton'),
+          Slider(value: _a.capacityKg.clamp(1000, 40000), min: 1000, max: 40000, divisions: 39, onChanged: (v) => setState(() => _a = _a.copyWith(capacityKg: v))),
+          Text('Maksimum boş yaklaşma: ${_a.maxDeadheadKm} km'),
+          Slider(value: _a.maxDeadheadKm.toDouble().clamp(25, 500), min: 25, max: 500, divisions: 19, onChanged: (v) => setState(() => _a = _a.copyWith(maxDeadheadKm: v.round()))),
+          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Frigorifik / sıcaklık kontrollü'), value: _a.refrigerated, onChanged: (v) => setState(() => _a = _a.copyWith(refrigerated: v))),
+          SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Liftli araç'), value: _a.tailLift, onChanged: (v) => setState(() => _a = _a.copyWith(tailLift: v))),
           const SizedBox(height: GucSpacing.lg),
           GucButton(
             label: l10n.save,

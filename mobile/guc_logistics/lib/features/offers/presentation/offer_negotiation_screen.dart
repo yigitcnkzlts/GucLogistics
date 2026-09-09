@@ -121,14 +121,23 @@ class _OfferNegotiationScreenState extends ConsumerState<OfferNegotiationScreen>
     final timeFmt = DateFormat.MMMd().add_Hm();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.offerRoom)),
+      appBar: AppBar(
+        title: const Text('GucLogistics'),
+        actions: const [Padding(padding: EdgeInsets.only(right: 16), child: Icon(Icons.notifications_none))],
+      ),
       body: async.when(
         data: (offer) {
+          final tr = Localizations.localeOf(context).languageCode == 'tr';
           final open = offer.status == 'PENDING' || offer.status == 'COUNTERED';
           final accepted = offer.status == 'ACCEPTED';
           return ListView(
             padding: const EdgeInsets.all(GucSpacing.md),
             children: [
+              Text(
+                tr ? 'Teklif Detayı' : 'Offer Details',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: GucColors.navy),
+              ),
+              const SizedBox(height: GucSpacing.md),
               Text(
                 offer.loadTitle ?? offer.loadId,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -146,6 +155,22 @@ class _OfferNegotiationScreenState extends ConsumerState<OfferNegotiationScreen>
                       color: Theme.of(context).colorScheme.primary,
                     ),
               ),
+              if (offer.vehiclePlate != null) ...[
+                const SizedBox(height: GucSpacing.md),
+                GucCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tr ? 'Araç ve şoför bilgileri' : 'Vehicle and driver details', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: GucSpacing.xs),
+                      Text('${offer.vehiclePlate} · ${offer.vehicleType ?? '-'}'),
+                      Text('${offer.driverName ?? '-'} · ${offer.driverPhone ?? '-'}'),
+                      if (offer.transitHours != null) Text(tr ? 'Tahmini taşıma: ${offer.transitHours} saat' : 'Estimated transit: ${offer.transitHours} hours'),
+                      if (offer.availableAt != null) Text('${tr ? 'Yüklemeye hazır' : 'Ready for loading'}: ${timeFmt.format(offer.availableAt!)}'),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: GucSpacing.md),
               Text(l10n.matchingHint, style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: GucSpacing.lg),

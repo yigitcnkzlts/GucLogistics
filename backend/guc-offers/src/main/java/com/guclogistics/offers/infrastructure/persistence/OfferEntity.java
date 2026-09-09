@@ -41,6 +41,27 @@ public class OfferEntity {
     @Column(length = 1000)
     private String message;
 
+    @Column(name = "vehicle_id")
+    private UUID vehicleId;
+
+    @Column(name = "vehicle_plate", nullable = false, length = 32)
+    private String vehiclePlate;
+
+    @Column(name = "vehicle_type", nullable = false, length = 80)
+    private String vehicleType;
+
+    @Column(name = "driver_name", nullable = false, length = 120)
+    private String driverName;
+
+    @Column(name = "driver_phone", nullable = false, length = 32)
+    private String driverPhone;
+
+    @Column(name = "estimated_transit_hours")
+    private Integer estimatedTransitHours;
+
+    @Column(name = "available_at")
+    private Instant availableAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OfferStatus status = OfferStatus.PENDING;

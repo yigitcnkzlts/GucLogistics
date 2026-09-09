@@ -79,8 +79,10 @@ class OfferServiceTest {
         currentLoadId = loadId;
         currentLoadStatus = "PUBLISHED";
 
+        UUID vehicleId = UUID.randomUUID();
         CreateOfferRequest request = new CreateOfferRequest(
-                OffererType.COMPANY, UUID.randomUUID(), BigDecimal.valueOf(500), "eur", "hello", null);
+                OffererType.COMPANY, UUID.randomUUID(), BigDecimal.valueOf(500), "eur", "hello", null,
+                vehicleId, "34 GUC 123", "CURTAINSIDER", "Can Driver", "+905551112233", 18, null);
 
         when(offerRepository.save(any(OfferEntity.class))).thenAnswer(inv -> {
             OfferEntity offer = inv.getArgument(0);
@@ -92,6 +94,10 @@ class OfferServiceTest {
 
         assertThat(response.status()).isEqualTo(OfferStatus.PENDING);
         assertThat(response.currency()).isEqualTo("EUR");
+        assertThat(response.vehicleId()).isEqualTo(vehicleId);
+        assertThat(response.vehiclePlate()).isEqualTo("34 GUC 123");
+        assertThat(response.driverName()).isEqualTo("Can Driver");
+        assertThat(response.estimatedTransitHours()).isEqualTo(18);
         verify(eventPublisher).publish(any(OfferSubmittedEvent.class));
     }
 

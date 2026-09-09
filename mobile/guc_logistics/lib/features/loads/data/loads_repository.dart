@@ -46,6 +46,17 @@ class LoadsRepository {
                   'readyFrom': e.loadDate.toIso8601String(),
                   'readyTo': e.deliveryDate.toIso8601String(),
                   'companyVerified': e.companyVerified,
+                  'pickupAddress': e.pickupAddress,
+                  'dropoffAddress': e.dropoffAddress,
+                  'volumeM3': e.volumeM3,
+                  'packagingType': e.packagingType,
+                  'cargoValue': e.cargoValue,
+                  'customsRequired': e.customsRequired,
+                  'customsReference': e.customsReference,
+                  'unNumber': e.unNumber,
+                  'temperatureMin': e.temperatureMin,
+                  'temperatureMax': e.temperatureMax,
+                  'insuranceRequired': e.insuranceRequired,
                 })
             .toList()),
       );
@@ -115,11 +126,78 @@ class LoadsRepository {
           pickupLng: MockData.cityLatLng[payload['pickupCity']?.toString()]?[1],
           dropoffLat: MockData.cityLatLng[payload['dropoffCity']?.toString()]?[0],
           dropoffLng: MockData.cityLatLng[payload['dropoffCity']?.toString()]?[1],
+          pickupAddress: payload['pickupAddress']?.toString(),
+          dropoffAddress: payload['dropoffAddress']?.toString(),
+          volumeM3: (payload['volumeM3'] as num?)?.toDouble(),
+          packagingType: payload['packagingType']?.toString(),
+          cargoValue: (payload['cargoValue'] as num?)?.toDouble(),
+          customsRequired: payload['customsRequired'] == true,
+          customsReference: payload['customsReference']?.toString(),
+          unNumber: payload['unNumber']?.toString(),
+          temperatureMin: (payload['temperatureMin'] as num?)?.toDouble(),
+          temperatureMax: (payload['temperatureMax'] as num?)?.toDouble(),
+          insuranceRequired: payload['insuranceRequired'] == true,
         ),
       );
       return;
     }
-    await _api.dio.post('/api/v1/loads', data: payload);
+    final companies = await _api.dio.get('/api/v1/companies/mine');
+    final companyList = companies.data is List ? companies.data as List : const [];
+    if (companyList.isEmpty) {
+      throw StateError('A verified shipper company is required before publishing a load.');
+    }
+    final company = Map<String, dynamic>.from(companyList.first as Map);
+    final operationalNotes = <String>[
+      if (payload['description'] != null) payload['description'].toString(),
+      if (payload['packagingType'] != null) 'Packaging: ${payload['packagingType']}',
+      if (payload['palletCount'] != null) 'Pallets: ${payload['palletCount']}',
+      if (payload['customsRequired'] == true) 'Customs required: ${payload['customsReference'] ?? 'yes'}',
+      if (payload['unNumber'] != null) 'UN: ${payload['unNumber']}',
+      if (payload['temperatureMin'] != null) 'Temperature: ${payload['temperatureMin']}..${payload['temperatureMax']} C',
+      if (payload['insuranceRequired'] == true) 'Cargo insurance required',
+    ].join('\n');
+    final response = await _api.dio.post('/api/v1/loads', data: {
+      'shipperCompanyId': company['id'],
+      'title': payload['title'],
+      'description': operationalNotes,
+      'pickupCountry': payload['pickupCountry'],
+      'pickupCity': payload['pickupCity'],
+      'pickupAddress': payload['pickupAddress'],
+      'pickupLat': payload['pickupLat'],
+      'pickupLng': payload['pickupLng'],
+      'dropoffCountry': payload['dropoffCountry'],
+      'dropoffCity': payload['dropoffCity'],
+      'dropoffAddress': payload['dropoffAddress'],
+      'dropoffLat': payload['dropoffLat'],
+      'dropoffLng': payload['dropoffLng'],
+      'readyFrom': payload['loadDate'],
+      'readyTo': payload['deliveryDate'],
+      'weightKg': payload['weightKg'],
+      'volumeM3': payload['volumeM3'],
+      'vehicleRequirements': payload['vehicleRequirements'],
+      'loadType': payload['loadType'],
+      'palletCount': payload['palletCount'],
+      'packagingType': payload['packagingType'],
+      'cargoValue': payload['cargoValue'],
+      'contactPerson': payload['contactPerson'],
+      'contactPhone': payload['contactPhone'],
+      'referenceNo': payload['referenceNo'],
+      'doorRamp': payload['doorRamp'],
+      'adr': payload['adr'],
+      'unNumber': payload['unNumber'],
+      'coldChain': payload['coldChain'],
+      'temperatureMin': payload['temperatureMin'],
+      'temperatureMax': payload['temperatureMax'],
+      'tailLift': payload['tailLift'],
+      'forklift': payload['forklift'],
+      'customsRequired': payload['customsRequired'],
+      'customsReference': payload['customsReference'],
+      'insuranceRequired': payload['insuranceRequired'],
+      'expectedPrice': payload['price'],
+      'currency': payload['currency'],
+    });
+    final created = Map<String, dynamic>.from(response.data as Map);
+    await _api.dio.post('/api/v1/loads/${created['id']}/publish');
   }
 
   Future<void> updateLoad(String id, Map<String, dynamic> payload) async {

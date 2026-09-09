@@ -165,6 +165,25 @@ public class LoadService {
         load.setWeightKg(request.weightKg());
         load.setVolumeM3(request.volumeM3());
         load.setVehicleRequirements(request.vehicleRequirements());
+        load.setLoadType(request.loadType());
+        load.setPalletCount(request.palletCount());
+        load.setPackagingType(request.packagingType());
+        load.setCargoValue(request.cargoValue());
+        load.setContactPerson(request.contactPerson());
+        load.setContactPhone(request.contactPhone());
+        load.setReferenceNo(request.referenceNo());
+        load.setDoorRamp(request.doorRamp());
+        load.setAdr(Boolean.TRUE.equals(request.adr()));
+        load.setUnNumber(request.unNumber());
+        load.setColdChain(Boolean.TRUE.equals(request.coldChain()));
+        load.setTemperatureMin(request.temperatureMin());
+        load.setTemperatureMax(request.temperatureMax());
+        load.setTailLift(Boolean.TRUE.equals(request.tailLift()));
+        load.setForklift(Boolean.TRUE.equals(request.forklift()));
+        load.setCustomsRequired(Boolean.TRUE.equals(request.customsRequired()));
+        load.setCustomsReference(request.customsReference());
+        load.setInsuranceRequired(Boolean.TRUE.equals(request.insuranceRequired()));
+        load.setExpectedPrice(request.expectedPrice());
         load.setCurrency(request.currency().toUpperCase());
     }
 
@@ -211,6 +230,25 @@ public class LoadService {
                 load.getWeightKg(),
                 load.getVolumeM3(),
                 load.getVehicleRequirements(),
+                load.getLoadType(),
+                load.getPalletCount(),
+                load.getPackagingType(),
+                load.getCargoValue(),
+                load.getContactPerson(),
+                load.getContactPhone(),
+                load.getReferenceNo(),
+                load.getDoorRamp(),
+                load.isAdr(),
+                load.getUnNumber(),
+                load.isColdChain(),
+                load.getTemperatureMin(),
+                load.getTemperatureMax(),
+                load.isTailLift(),
+                load.isForklift(),
+                load.isCustomsRequired(),
+                load.getCustomsReference(),
+                load.isInsuranceRequired(),
+                load.getExpectedPrice(),
                 load.getCurrency(),
                 load.getStatus(),
                 load.getVersion(),

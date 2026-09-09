@@ -75,6 +75,45 @@ public class LoadEntity {
     @Column(name = "vehicle_requirements", length = 500)
     private String vehicleRequirements;
 
+    @Column(name = "load_type", length = 80)
+    private String loadType;
+    @Column(name = "pallet_count")
+    private Integer palletCount;
+    @Column(name = "packaging_type", length = 80)
+    private String packagingType;
+    @Column(name = "cargo_value", precision = 14, scale = 2)
+    private BigDecimal cargoValue;
+    @Column(name = "contact_person", length = 120)
+    private String contactPerson;
+    @Column(name = "contact_phone", length = 32)
+    private String contactPhone;
+    @Column(name = "reference_no", length = 100)
+    private String referenceNo;
+    @Column(name = "door_ramp", length = 100)
+    private String doorRamp;
+    @Column(nullable = false)
+    private boolean adr;
+    @Column(name = "un_number", length = 16)
+    private String unNumber;
+    @Column(name = "cold_chain", nullable = false)
+    private boolean coldChain;
+    @Column(name = "temperature_min", precision = 6, scale = 2)
+    private BigDecimal temperatureMin;
+    @Column(name = "temperature_max", precision = 6, scale = 2)
+    private BigDecimal temperatureMax;
+    @Column(name = "tail_lift", nullable = false)
+    private boolean tailLift;
+    @Column(nullable = false)
+    private boolean forklift;
+    @Column(name = "customs_required", nullable = false)
+    private boolean customsRequired;
+    @Column(name = "customs_reference", length = 100)
+    private String customsReference;
+    @Column(name = "insurance_required", nullable = false)
+    private boolean insuranceRequired;
+    @Column(name = "expected_price", precision = 14, scale = 2)
+    private BigDecimal expectedPrice;
+
     @Column(nullable = false, length = 3)
     private String currency;
 

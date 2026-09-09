@@ -32,6 +32,13 @@ class OffersRepository {
     required double amount,
     required String currency,
     String? message,
+    String? vehicleId,
+    required String vehiclePlate,
+    required String vehicleType,
+    required String driverName,
+    required String driverPhone,
+    required int estimatedTransitHours,
+    required DateTime availableAt,
   }) async {
     if (AppConfig.useMockData) {
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -54,6 +61,13 @@ class OffersRepository {
           message: message,
           loadTitle: load?.title,
           carrierName: MockData.driverDisplayName,
+          vehicleId: vehicleId,
+          vehiclePlate: vehiclePlate,
+          vehicleType: vehicleType,
+          driverName: driverName,
+          driverPhone: driverPhone,
+          transitHours: estimatedTransitHours,
+          availableAt: availableAt,
           rounds: [
             OfferRound(
               amount: amount,
@@ -72,6 +86,13 @@ class OffersRepository {
       'amount': amount,
       'currency': currency,
       'message': message,
+      'vehicleId': vehicleId,
+      'vehiclePlate': vehiclePlate,
+      'vehicleType': vehicleType,
+      'driverName': driverName,
+      'driverPhone': driverPhone,
+      'estimatedTransitHours': estimatedTransitHours,
+      'availableAt': availableAt.toUtc().toIso8601String(),
     });
   }
 

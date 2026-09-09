@@ -75,6 +75,10 @@ class AuthRepository {
     required String email,
     required String password,
     required UserRole role,
+    String? phone,
+    String? companyName,
+    String? vatNumber,
+    String? country,
   }) async {
     if (AppConfig.useMockData) {
       await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -82,6 +86,9 @@ class AuthRepository {
       await _storage.write(key: 'refresh_token', value: 'mock-refresh');
       await _storage.write(key: 'email', value: email);
       await _storage.write(key: 'role_api', value: role.apiValue);
+      if (companyName != null && companyName.isNotEmpty) MockData.companyName = companyName;
+      if (vatNumber != null && vatNumber.isNotEmpty) MockData.companyVat = vatNumber;
+      if (phone != null && phone.isNotEmpty) MockData.shipperPhone = phone;
       return {
         'accessToken': 'mock-access',
         'roles': [role.apiValue],
@@ -91,6 +98,7 @@ class AuthRepository {
     final response = await _api.dio.post('/api/v1/auth/register', data: {
       'email': email,
       'password': password,
+      'phone': phone,
       'role': role.apiValue,
       'deviceFingerprint': 'flutter-android',
       'platform': 'ANDROID',
@@ -99,6 +107,15 @@ class AuthRepository {
       'timezone': 'UTC',
     });
     await _persistTokens(response.data as Map);
+    if (role.isShipperSide && companyName != null && companyName.isNotEmpty) {
+      await _api.dio.post('/api/v1/companies', data: {
+        'type': role == UserRole.shipper ? 'SHIPPER' : 'LOGISTICS',
+        'legalName': companyName,
+        'tradeName': companyName,
+        'vatNumber': vatNumber,
+        'country': (country == null || country.length != 2) ? 'TR' : country.toUpperCase(),
+      });
+    }
     return Map<String, dynamic>.from(response.data as Map);
   }
 

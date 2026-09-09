@@ -71,10 +71,26 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register(String email, String password, UserRole role) async {
+  Future<bool> register(
+    String email,
+    String password,
+    UserRole role, {
+    String? phone,
+    String? companyName,
+    String? vatNumber,
+    String? country,
+  }) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      final result = await _repository.register(email: email, password: password, role: role);
+      final result = await _repository.register(
+        email: email,
+        password: password,
+        role: role,
+        phone: phone,
+        companyName: companyName,
+        vatNumber: vatNumber,
+        country: country,
+      );
       await _repository.persistRoleApi(role);
       state = AuthState(
         loading: false,

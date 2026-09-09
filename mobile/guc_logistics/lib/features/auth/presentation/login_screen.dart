@@ -238,10 +238,15 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
   final _confirm = TextEditingController();
   final _displayName = TextEditingController();
   final _phone = TextEditingController();
+  final _companyName = TextEditingController();
+  final _vatNumber = TextEditingController();
+  final _country = TextEditingController(text: 'TR');
   late UserRole _role;
   bool _acceptedLegal = false;
   bool _acceptedKvkk = false;
   String? _legalError;
+
+  String _label(String tr, String en) => Localizations.localeOf(context).languageCode == 'tr' ? tr : en;
 
   @override
   void initState() {
@@ -256,6 +261,9 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
     _confirm.dispose();
     _displayName.dispose();
     _phone.dispose();
+    _companyName.dispose();
+    _vatNumber.dispose();
+    _country.dispose();
     super.dispose();
   }
 
@@ -275,6 +283,10 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
           _email.text.trim(),
           _password.text,
           _role,
+          phone: _phone.text.trim(),
+          companyName: widget.audience == AuthAudience.shipper ? _companyName.text.trim() : null,
+          vatNumber: widget.audience == AuthAudience.shipper ? _vatNumber.text.trim() : null,
+          country: widget.audience == AuthAudience.shipper ? _country.text.trim() : null,
         );
     if (!mounted || !ok) return;
     if (widget.audience == AuthAudience.carrier) {
@@ -282,6 +294,10 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
       final phone = _phone.text.trim();
       if (name.isNotEmpty) MockData.driverDisplayName = name;
       if (phone.isNotEmpty) MockData.driverPhone = phone;
+    } else {
+      MockData.companyName = _companyName.text.trim();
+      MockData.companyVat = _vatNumber.text.trim();
+      MockData.shipperPhone = _phone.text.trim();
     }
     await ref.read(appSettingsProvider.notifier).setRole(_role);
     if (mounted) context.go('/home');
@@ -294,7 +310,10 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
     final isShipper = widget.audience == AuthAudience.shipper;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isShipper ? l10n.registerShipper : l10n.registerCarrier)),
+      appBar: AppBar(
+        title: const Text('GucLogistics'),
+        actions: const [Padding(padding: EdgeInsets.only(right: 16), child: Icon(Icons.local_shipping_outlined))],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(GucSpacing.lg),
@@ -303,6 +322,18 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  isShipper ? _label('Yük Veren Kaydı', 'Shipper registration') : _label('Taşıyıcı Kaydı', 'Carrier registration'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: GucColors.navy,
+                      ),
+                ),
+                const SizedBox(height: GucSpacing.xs),
+                Text(isShipper
+                    ? _label('Avrupa’ya açılan güvenilir taşımacılık ağına siz de katılın.', 'Join a trusted European freight network.')
+                    : _label('Aracınıza ve rotanıza uygun yükleri bulun.', 'Find loads matching your vehicle and route.')),
+                const SizedBox(height: GucSpacing.lg),
                 DropdownButtonFormField<UserRole>(
                   initialValue: _role,
                   decoration: InputDecoration(labelText: l10n.roleTitle),
@@ -314,6 +345,38 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
                 const SizedBox(height: GucSpacing.md),
                 if (!isShipper) ...[
                   GucTextField(label: l10n.displayName, controller: _displayName, validator: (v) => (v == null || v.trim().isEmpty) ? l10n.requiredField : null),
+                  const SizedBox(height: GucSpacing.sm),
+                  GucTextField(
+                    label: l10n.phoneNumber,
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => (v == null || v.trim().length < 8) ? l10n.requiredField : null,
+                  ),
+                  const SizedBox(height: GucSpacing.sm),
+                ] else ...[
+                  GucTextField(
+                    label: _label('Şirket unvanı', 'Legal company name'),
+                    controller: _companyName,
+                    validator: (v) => (v == null || v.trim().length < 2) ? l10n.requiredField : null,
+                  ),
+                  const SizedBox(height: GucSpacing.sm),
+                  GucTextField(
+                    label: _label('Vergi / VAT numarası', 'Tax / VAT number'),
+                    controller: _vatNumber,
+                    validator: (v) => (v == null || v.trim().length < 5) ? l10n.requiredField : null,
+                  ),
+                  const SizedBox(height: GucSpacing.sm),
+                  GucTextField(
+                    label: _label('Ülke kodu (TR, DE...)', 'Country code (TR, DE...)'),
+                    controller: _country,
+                    validator: (v) => (v == null || !RegExp(r'^[A-Za-z]{2}$').hasMatch(v.trim())) ? l10n.requiredField : null,
+                  ),
+                  const SizedBox(height: GucSpacing.sm),
+                  GucTextField(
+                    label: _label('Yetkili adı soyadı', 'Authorized contact name'),
+                    controller: _displayName,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? l10n.requiredField : null,
+                  ),
                   const SizedBox(height: GucSpacing.sm),
                   GucTextField(
                     label: l10n.phoneNumber,

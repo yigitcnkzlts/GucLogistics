@@ -71,6 +71,23 @@ class MarketplaceRepository {
           // Non-ADR drivers skip ADR loads
           items = items.where((e) => !e.adr).toList();
         }
+        items = items.where((e) => e.weightKg <= pref.capacityKg).toList();
+        if (pref.preferredDestination != 'Any') {
+          items = items.where((e) => e.dropoffCountry == pref.preferredDestination).toList();
+        }
+        if (!pref.refrigerated) {
+          items = items.where((e) => !e.coldChain).toList();
+        }
+        if (!pref.tailLift) {
+          items = items.where((e) => !e.tailLift).toList();
+        }
+        final now = DateTime.now();
+        if (pref.availableFrom != null) {
+          items = items.where((e) => !e.loadDate.isBefore(pref.availableFrom!)).toList();
+        }
+        if (pref.availableUntil != null) {
+          items = items.where((e) => !e.loadDate.isAfter(pref.availableUntil!)).toList();
+        }
         final minEur = pref.minPriceTry / 36;
         items = items.where((e) => (e.price ?? 0) >= minEur * 0.5).toList();
       }

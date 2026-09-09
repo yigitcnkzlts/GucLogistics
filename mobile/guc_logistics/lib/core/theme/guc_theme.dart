@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class GucColors {
+  static const Color navy = Color(0xFF0C3658);
+  static const Color navyMid = Color(0xFF164F78);
+  static const Color freightOrange = Color(0xFFFF641A);
   static const Color forest = Color(0xFF0B3D2E);
   static const Color forestMid = Color(0xFF145C45);
   static const Color steel = Color(0xFF3D5A6C);
@@ -26,11 +29,11 @@ class GucSpacing {
 class GucTheme {
   static ThemeData get light {
     final base = ColorScheme.fromSeed(
-      seedColor: GucColors.forest,
+      seedColor: GucColors.navy,
       brightness: Brightness.light,
-      primary: GucColors.forest,
-      secondary: GucColors.steel,
-      surface: GucColors.surfaceLight,
+      primary: GucColors.freightOrange,
+      secondary: GucColors.navy,
+      surface: const Color(0xFFF5F7FA),
       error: GucColors.danger,
     );
     return _build(base, Brightness.light);
@@ -38,10 +41,10 @@ class GucTheme {
 
   static ThemeData get dark {
     final base = ColorScheme.fromSeed(
-      seedColor: GucColors.forest,
+      seedColor: GucColors.navy,
       brightness: Brightness.dark,
-      primary: const Color(0xFF6FBF9C),
-      secondary: const Color(0xFF8AA4B3),
+      primary: const Color(0xFFFF7A38),
+      secondary: const Color(0xFF75B7E5),
       error: const Color(0xFFE57373),
     );
     return _build(base, Brightness.dark);
@@ -62,26 +65,26 @@ class GucTheme {
       scaffoldBackgroundColor: scheme.surface,
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
+        backgroundColor: brightness == Brightness.light ? GucColors.navy : const Color(0xFF071F34),
+        foregroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0.5,
-        titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: Colors.white),
       ),
       cardTheme: CardThemeData(
-        elevation: 0,
-        color: scheme.surfaceContainerHighest.withValues(alpha: brightness == Brightness.light ? 0.35 : 0.25),
+        elevation: brightness == Brightness.light ? 1 : 0,
+        color: brightness == Brightness.light ? Colors.white : scheme.surfaceContainerHighest.withValues(alpha: 0.35),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        fillColor: brightness == Brightness.light ? Colors.white : scheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -89,7 +92,7 @@ class GucTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),

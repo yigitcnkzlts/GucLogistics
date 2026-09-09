@@ -41,6 +41,17 @@ class LoadItem extends Equatable {
     this.pickupLng,
     this.dropoffLat,
     this.dropoffLng,
+    this.pickupAddress,
+    this.dropoffAddress,
+    this.volumeM3,
+    this.packagingType,
+    this.cargoValue,
+    this.customsRequired = false,
+    this.customsReference,
+    this.unNumber,
+    this.temperatureMin,
+    this.temperatureMax,
+    this.insuranceRequired = false,
   });
 
   final String id;
@@ -84,6 +95,17 @@ class LoadItem extends Equatable {
   final double? pickupLng;
   final double? dropoffLat;
   final double? dropoffLng;
+  final String? pickupAddress;
+  final String? dropoffAddress;
+  final double? volumeM3;
+  final String? packagingType;
+  final double? cargoValue;
+  final bool customsRequired;
+  final String? customsReference;
+  final String? unNumber;
+  final double? temperatureMin;
+  final double? temperatureMax;
+  final bool insuranceRequired;
 
   double get weightTons => weightKg / 1000;
 
@@ -102,7 +124,7 @@ class LoadItem extends Equatable {
       deliveryDate: DateTime.tryParse(json['readyTo']?.toString() ?? json['deliveryDate']?.toString() ?? '') ?? DateTime.now(),
       status: json['status']?.toString() ?? 'PUBLISHED',
       currency: json['currency']?.toString() ?? 'EUR',
-      price: (json['price'] as num?)?.toDouble(),
+      price: (json['price'] as num?)?.toDouble() ?? (json['expectedPrice'] as num?)?.toDouble(),
       offerStatus: json['offerStatus']?.toString(),
       companyVerified: json['companyVerified'] == true,
       description: json['description']?.toString(),
@@ -128,6 +150,17 @@ class LoadItem extends Equatable {
       pickupLng: (json['pickupLng'] as num?)?.toDouble(),
       dropoffLat: (json['dropoffLat'] as num?)?.toDouble(),
       dropoffLng: (json['dropoffLng'] as num?)?.toDouble(),
+      pickupAddress: json['pickupAddress']?.toString(),
+      dropoffAddress: json['dropoffAddress']?.toString(),
+      volumeM3: (json['volumeM3'] as num?)?.toDouble(),
+      packagingType: json['packagingType']?.toString(),
+      cargoValue: (json['cargoValue'] as num?)?.toDouble(),
+      customsRequired: json['customsRequired'] == true,
+      customsReference: json['customsReference']?.toString(),
+      unNumber: json['unNumber']?.toString(),
+      temperatureMin: (json['temperatureMin'] as num?)?.toDouble(),
+      temperatureMax: (json['temperatureMax'] as num?)?.toDouble(),
+      insuranceRequired: json['insuranceRequired'] == true,
     );
   }
 
@@ -167,6 +200,17 @@ class LoadItem extends Equatable {
     double? pickupLng,
     double? dropoffLat,
     double? dropoffLng,
+    String? pickupAddress,
+    String? dropoffAddress,
+    double? volumeM3,
+    String? packagingType,
+    double? cargoValue,
+    bool? customsRequired,
+    String? customsReference,
+    String? unNumber,
+    double? temperatureMin,
+    double? temperatureMax,
+    bool? insuranceRequired,
   }) {
     return LoadItem(
       id: id,
@@ -208,6 +252,17 @@ class LoadItem extends Equatable {
       pickupLng: pickupLng ?? this.pickupLng,
       dropoffLat: dropoffLat ?? this.dropoffLat,
       dropoffLng: dropoffLng ?? this.dropoffLng,
+      pickupAddress: pickupAddress ?? this.pickupAddress,
+      dropoffAddress: dropoffAddress ?? this.dropoffAddress,
+      volumeM3: volumeM3 ?? this.volumeM3,
+      packagingType: packagingType ?? this.packagingType,
+      cargoValue: cargoValue ?? this.cargoValue,
+      customsRequired: customsRequired ?? this.customsRequired,
+      customsReference: customsReference ?? this.customsReference,
+      unNumber: unNumber ?? this.unNumber,
+      temperatureMin: temperatureMin ?? this.temperatureMin,
+      temperatureMax: temperatureMax ?? this.temperatureMax,
+      insuranceRequired: insuranceRequired ?? this.insuranceRequired,
     );
   }
 
@@ -318,6 +373,12 @@ class OfferItem extends Equatable {
     this.rejectReason,
     this.createdAt,
     this.expiresAt,
+    this.vehicleId,
+    this.vehiclePlate,
+    this.vehicleType,
+    this.driverName,
+    this.driverPhone,
+    this.availableAt,
   });
 
   final String id;
@@ -336,6 +397,12 @@ class OfferItem extends Equatable {
   final String? rejectReason;
   final DateTime? createdAt;
   final DateTime? expiresAt;
+  final String? vehicleId;
+  final String? vehiclePlate;
+  final String? vehicleType;
+  final String? driverName;
+  final String? driverPhone;
+  final DateTime? availableAt;
 
   bool get slaExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
 
@@ -350,12 +417,18 @@ class OfferItem extends Equatable {
       loadTitle: json['loadTitle']?.toString(),
       carrierName: json['carrierName']?.toString(),
       matchId: json['matchId']?.toString(),
-      transitHours: (json['transitHours'] as num?)?.toInt(),
+      transitHours: (json['transitHours'] as num?)?.toInt() ?? (json['estimatedTransitHours'] as num?)?.toInt(),
       trustScore: (json['trustScore'] as num?)?.toDouble(),
       carrierId: json['carrierId']?.toString(),
       rejectReason: json['rejectReason']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       expiresAt: DateTime.tryParse(json['expiresAt']?.toString() ?? ''),
+      vehicleId: json['vehicleId']?.toString(),
+      vehiclePlate: json['vehiclePlate']?.toString(),
+      vehicleType: json['vehicleType']?.toString(),
+      driverName: json['driverName']?.toString(),
+      driverPhone: json['driverPhone']?.toString(),
+      availableAt: DateTime.tryParse(json['availableAt']?.toString() ?? ''),
     );
   }
 
@@ -386,6 +459,12 @@ class OfferItem extends Equatable {
       rejectReason: rejectReason ?? this.rejectReason,
       createdAt: createdAt ?? this.createdAt,
       expiresAt: expiresAt ?? this.expiresAt,
+      vehicleId: vehicleId,
+      vehiclePlate: vehiclePlate,
+      vehicleType: vehicleType,
+      driverName: driverName,
+      driverPhone: driverPhone,
+      availableAt: availableAt,
     );
   }
 
@@ -580,6 +659,13 @@ class CarrierAvailability extends Equatable {
     this.minPriceTry = 15000,
     this.vehicleFilter = 'Any',
     this.adrReady = false,
+    this.maxDeadheadKm = 150,
+    this.capacityKg = 24000,
+    this.preferredDestination = 'Any',
+    this.refrigerated = false,
+    this.tailLift = false,
+    this.availableFrom,
+    this.availableUntil,
   });
 
   final bool available;
@@ -589,6 +675,13 @@ class CarrierAvailability extends Equatable {
   final double minPriceTry;
   final String vehicleFilter;
   final bool adrReady;
+  final int maxDeadheadKm;
+  final double capacityKg;
+  final String preferredDestination;
+  final bool refrigerated;
+  final bool tailLift;
+  final DateTime? availableFrom;
+  final DateTime? availableUntil;
 
   CarrierAvailability copyWith({
     bool? available,
@@ -598,6 +691,13 @@ class CarrierAvailability extends Equatable {
     double? minPriceTry,
     String? vehicleFilter,
     bool? adrReady,
+    int? maxDeadheadKm,
+    double? capacityKg,
+    String? preferredDestination,
+    bool? refrigerated,
+    bool? tailLift,
+    DateTime? availableFrom,
+    DateTime? availableUntil,
   }) {
     return CarrierAvailability(
       available: available ?? this.available,
@@ -607,11 +707,18 @@ class CarrierAvailability extends Equatable {
       minPriceTry: minPriceTry ?? this.minPriceTry,
       vehicleFilter: vehicleFilter ?? this.vehicleFilter,
       adrReady: adrReady ?? this.adrReady,
+      maxDeadheadKm: maxDeadheadKm ?? this.maxDeadheadKm,
+      capacityKg: capacityKg ?? this.capacityKg,
+      preferredDestination: preferredDestination ?? this.preferredDestination,
+      refrigerated: refrigerated ?? this.refrigerated,
+      tailLift: tailLift ?? this.tailLift,
+      availableFrom: availableFrom ?? this.availableFrom,
+      availableUntil: availableUntil ?? this.availableUntil,
     );
   }
 
   @override
-  List<Object?> get props => [available, country, city, minPriceTry, vehicleFilter, adrReady];
+  List<Object?> get props => [available, country, city, minPriceTry, vehicleFilter, adrReady, maxDeadheadKm, capacityKg, preferredDestination, refrigerated, tailLift, availableFrom, availableUntil];
 }
 
 class VehicleItem extends Equatable {

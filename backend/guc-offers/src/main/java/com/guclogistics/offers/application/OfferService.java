@@ -42,6 +42,13 @@ public class OfferService {
         offer.setAmount(request.amount());
         offer.setCurrency(request.currency().toUpperCase());
         offer.setMessage(request.message());
+        offer.setVehicleId(request.vehicleId());
+        offer.setVehiclePlate(request.vehiclePlate());
+        offer.setVehicleType(request.vehicleType());
+        offer.setDriverName(request.driverName());
+        offer.setDriverPhone(request.driverPhone());
+        offer.setEstimatedTransitHours(request.estimatedTransitHours());
+        offer.setAvailableAt(request.availableAt());
         offer.setValidUntil(request.validUntil());
         offer.setStatus(OfferStatus.PENDING);
 
@@ -221,6 +228,13 @@ public class OfferService {
                 offer.getAmount(),
                 offer.getCurrency(),
                 offer.getMessage(),
+                offer.getVehicleId(),
+                offer.getVehiclePlate(),
+                offer.getVehicleType(),
+                offer.getDriverName(),
+                offer.getDriverPhone(),
+                offer.getEstimatedTransitHours(),
+                offer.getAvailableAt(),
                 offer.getStatus(),
                 offer.getValidUntil(),
                 offer.getVersion(),
