@@ -10,6 +10,7 @@ import '../../../core/domain/models.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/services/platform_services.dart';
 import '../../../core/theme/guc_theme.dart';
+import '../../../core/validation/load_validators.dart';
 import '../../../core/widgets/guc_load_card.dart';
 import '../../../core/widgets/guc_widgets.dart';
 import '../../marketplace/data/marketplace_repository.dart';
@@ -460,8 +461,9 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    if (!_deliveryAt.isAfter(_pickupAt)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teslim zamanı yükleme zamanından sonra olmalıdır.')));
+    final scheduleError = LoadValidators.schedule(_pickupAt, _deliveryAt);
+    if (scheduleError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(scheduleError)));
       return;
     }
     setState(() => _loading = true);
@@ -645,9 +647,7 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
                   controller: _tons,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: (v) {
-                    final n = double.tryParse((v ?? '').replaceAll(',', '.'));
-                    if (n == null || n <= 0 || n > 60) return '0–60 ton arasında değer girin';
-                    return null;
+                    return LoadValidators.weightTons(v);
                   },
                 ),
               ),
@@ -767,7 +767,7 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
             Row(children: [
               Expanded(child: GucTextField(label: '${l10n.dropoff} · ${l10n.city}', controller: _dropoffCity, validator: req)),
               const SizedBox(width: GucSpacing.sm),
-              Expanded(child: GucTextField(label: l10n.countryCode, controller: _dropoffCountry, validator: req)),
+              Expanded(child: GucTextField(label: l10n.countryCode, controller: _dropoffCountry, validator: LoadValidators.countryCode)),
             ]),
             const SizedBox(height: GucSpacing.sm),
             GucTextField(label: 'Teslimat açık adresi', controller: _dropoffAddress, validator: req, maxLines: 2),

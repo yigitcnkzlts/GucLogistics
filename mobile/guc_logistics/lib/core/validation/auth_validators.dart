@@ -24,7 +24,7 @@ class AuthValidators {
     required String needSpecial,
   }) {
     final v = value ?? '';
-    if (v.length < 8) return tooShort;
+    if (v.length < 12) return tooShort;
     if (!upper.hasMatch(v)) return needUpper;
     if (!lower.hasMatch(v)) return needLower;
     if (!digit.hasMatch(v)) return needDigit;

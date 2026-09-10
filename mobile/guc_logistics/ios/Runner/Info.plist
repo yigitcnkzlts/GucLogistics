@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Yük, araç, CMR ve teslimat belgelerinin fotoğrafını eklemek için kamera kullanılır.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Yük ve taşıma belgelerini seçebilmeniz için fotoğraf arşivinize erişilir.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Yükleme noktasını belirlemek ve aktif sefer konumunu paylaşmak için konum kullanılır.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
