@@ -19,9 +19,11 @@ class ProfileScreen extends ConsumerWidget {
     final session = ref.watch(sessionProfileProvider);
     final role = settings.role;
     final isShipper = role?.isShipperSide ?? true;
-    final verified = isShipper
-        ? session.valueOrNull?['companyVerified'] == true
-        : session.valueOrNull?['driverVerified'] == true;
+    final profile = session.valueOrNull;
+    final verified = profile != null &&
+        (isShipper
+            ? profile['companyVerified'] == true
+            : profile['driverVerified'] == true);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profile)),

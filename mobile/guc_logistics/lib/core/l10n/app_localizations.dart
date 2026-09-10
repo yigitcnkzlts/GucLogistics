@@ -193,7 +193,6 @@ class AppLocalizations {
       'availableForLoads': 'Available for loads',
       'availableForLoadsHint': 'Show your current location and preferences to get better matches.',
       'notAvailableNow': 'Not available right now',
-      'minAcceptPrice': 'Minimum accept price',
       'adrReady': 'ADR ready',
       'callNow': 'Call',
       'sendSms': 'SMS',
@@ -302,7 +301,6 @@ class AppLocalizations {
       'noMatchesYet': 'No matches yet',
       'noMatchesHint': 'Accept an offer to open a match conversation.',
       'editProfile': 'Edit profile',
-      'displayName': 'Display name',
       'requiredField': 'This field is required',
       'addVehicle': 'Add vehicle',
       'editVehicle': 'Edit vehicle',
@@ -666,7 +664,6 @@ class AppLocalizations {
       'availableForLoads': 'Yük için müsaitim',
       'availableForLoadsHint': 'Konum ve tercihlerini göster, daha iyi eşleşme al.',
       'notAvailableNow': 'Şu an müsait değil',
-      'minAcceptPrice': 'Minimum kabul fiyatı',
       'adrReady': 'ADR hazır',
       'callNow': 'Ara',
       'sendSms': 'SMS',
@@ -775,7 +772,6 @@ class AppLocalizations {
       'noMatchesYet': 'Henüz eşleşme yok',
       'noMatchesHint': 'Teklifi kabul edince eşleşme sohbeti açılır.',
       'editProfile': 'Profili düzenle',
-      'displayName': 'Görünen ad',
       'requiredField': 'Bu alan zorunlu',
       'addVehicle': 'Araç ekle',
       'editVehicle': 'Aracı düzenle',
@@ -1283,7 +1279,6 @@ class AppLocalizations {
   String get availableForLoads => _v('availableForLoads');
   String get availableForLoadsHint => _v('availableForLoadsHint');
   String get notAvailableNow => _v('notAvailableNow');
-  String get minAcceptPrice => _v('minAcceptPrice');
   String get adrReady => _v('adrReady');
   String get callNow => _v('callNow');
   String get sendSms => _v('sendSms');
@@ -1392,7 +1387,6 @@ class AppLocalizations {
   String get noMatchesYet => _v('noMatchesYet');
   String get noMatchesHint => _v('noMatchesHint');
   String get editProfile => _v('editProfile');
-  String get displayName => _v('displayName');
   String get requiredField => _v('requiredField');
   String get addVehicle => _v('addVehicle');
   String get editVehicle => _v('editVehicle');
