@@ -218,11 +218,4 @@ class OffersRepository {
     }
     await _api.dio.post('/api/v1/offers/$id/reject', data: {'reason': reason});
   }
-
-  void _updateStatus(String id, String status) {
-    final index = MockData.offers.indexWhere((e) => e.id == id);
-    if (index < 0) return;
-    final current = MockData.offers[index];
-    MockData.offers[index] = current.copyWith(status: status);
-  }
 }

@@ -39,7 +39,7 @@ class _ClaimsScreenState extends ConsumerState<ClaimsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: type,
+                initialValue: type,
                 items: [
                   DropdownMenuItem(value: 'DELAY', child: Text(l10n.claimDelay)),
                   DropdownMenuItem(value: 'DAMAGE', child: Text(l10n.claimDamage)),
@@ -622,6 +622,7 @@ class _EditLoadScreenState extends ConsumerState<EditLoadScreen> {
                   if (source == null) return;
                   await ref.read(loadsRepositoryProvider).addPhoto(load.id, '${source}_${DateTime.now().millisecondsSinceEpoch}.jpg');
                   final updated = await ref.read(loadsRepositoryProvider).getLoad(load.id);
+                  if (!mounted) return;
                   setState(() => _load = updated);
                 },
               ),
@@ -638,10 +639,9 @@ class _EditLoadScreenState extends ConsumerState<EditLoadScreen> {
                 'favoritesOnly': _favoritesOnly,
                 'offerSlaHours': _sla,
               });
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saved)));
-                context.pop();
-              }
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saved)));
+              context.pop();
             },
           ),
           const SizedBox(height: GucSpacing.sm),
@@ -650,10 +650,9 @@ class _EditLoadScreenState extends ConsumerState<EditLoadScreen> {
             variant: GucButtonVariant.secondary,
             onPressed: () async {
               await ref.read(loadsRepositoryProvider).setPublished(load.id, load.status == 'UNPUBLISHED');
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saved)));
-                context.pop();
-              }
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.saved)));
+              context.pop();
             },
           ),
         ],

@@ -697,7 +697,7 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
             _LoadSectionHeader(icon: Icons.route_outlined, title: l10n.route, subtitle: 'Kesin yükleme ve teslimat noktaları'),
             const SizedBox(height: GucSpacing.sm),
             DropdownButtonFormField<String>(
-              value: EuropeGeo.countries.contains(_pickupCountry.text.toUpperCase()) ? _pickupCountry.text.toUpperCase() : 'DE',
+              initialValue: EuropeGeo.countries.contains(_pickupCountry.text.toUpperCase()) ? _pickupCountry.text.toUpperCase() : 'DE',
               decoration: InputDecoration(labelText: '${l10n.pickup} · ${l10n.country}', border: const OutlineInputBorder()),
               items: EuropeGeo.countries.map((c) => DropdownMenuItem(value: c, child: Text(EuropeGeo.countryLabel(c)))).toList(),
               onChanged: (v) {
@@ -724,7 +724,7 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
             ),
             const SizedBox(height: GucSpacing.sm),
             DropdownButtonFormField<String>(
-              value: EuropeGeo.regionsFor(_pickupCountry.text.toUpperCase()).contains(_pickupRegion)
+              initialValue: EuropeGeo.regionsFor(_pickupCountry.text.toUpperCase()).contains(_pickupRegion)
                   ? _pickupRegion
                   : (EuropeGeo.regionsFor(_pickupCountry.text.toUpperCase()).isNotEmpty
                       ? EuropeGeo.regionsFor(_pickupCountry.text.toUpperCase()).first
@@ -745,7 +745,7 @@ class _CreateLoadScreenState extends ConsumerState<CreateLoadScreen> {
             ),
             const SizedBox(height: GucSpacing.sm),
             DropdownButtonFormField<String>(
-              value: EuropeGeo.citiesFor(country: _pickupCountry.text.toUpperCase(), region: _pickupRegion).contains(_pickupCity.text)
+              initialValue: EuropeGeo.citiesFor(country: _pickupCountry.text.toUpperCase(), region: _pickupRegion).contains(_pickupCity.text)
                   ? _pickupCity.text
                   : (EuropeGeo.citiesFor(country: _pickupCountry.text.toUpperCase(), region: _pickupRegion).isNotEmpty
                       ? EuropeGeo.citiesFor(country: _pickupCountry.text.toUpperCase(), region: _pickupRegion).first
@@ -950,6 +950,7 @@ class _SubmitOfferScreenState extends ConsumerState<SubmitOfferScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final load = await ref.read(loadsRepositoryProvider).getLoad(widget.loadId);
+    if (!mounted) return;
     final selected = _vehicles.where((v) => v.id == _vehicleId);
     final warnings = <String>[
       if (selected.isNotEmpty && load.weightKg > selected.first.capacityKg) 'Yük ağırlığı seçilen aracın kapasitesini aşıyor.',

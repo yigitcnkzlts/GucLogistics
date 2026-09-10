@@ -481,7 +481,7 @@ class MockData {
     CorridorPreset(id: 'benelux', label: 'Benelux', fromCountries: ['NL', 'BE', 'LU'], toCountries: ['DE', 'FR', 'PL', 'IT', 'AT']),
     CorridorPreset(id: 'it-at', label: 'IT → AT', fromCountries: ['IT'], toCountries: ['AT']),
     CorridorPreset(id: 'cz-hu', label: 'CZ → HU', fromCountries: ['CZ'], toCountries: ['HU']),
-    CorridorPreset(id: 'all-eu', label: 'All Europe', fromCountries: const [], toCountries: const []),
+    CorridorPreset(id: 'all-eu', label: 'All Europe', fromCountries: [], toCountries: []),
   ];
 
   static const priceBands = <MarketPriceBand>[
@@ -597,7 +597,7 @@ class MockData {
     DocItem(id: 'doc-1', type: 'ID', title: 'Identity document', status: 'APPROVED', fileName: 'id_card.pdf', updatedAt: DateTime.now().subtract(const Duration(days: 20))),
     DocItem(id: 'doc-2', type: 'LICENSE', title: 'Driver license C+E', status: 'APPROVED', fileName: 'license.pdf', updatedAt: DateTime.now().subtract(const Duration(days: 12))),
     DocItem(id: 'doc-3', type: 'INSURANCE', title: 'Cargo insurance', status: 'PENDING', fileName: 'insurance.pdf', updatedAt: DateTime.now().subtract(const Duration(days: 1))),
-    DocItem(id: 'doc-4', type: 'K1', title: 'Vehicle registration (K1)', status: 'MISSING'),
+    const DocItem(id: 'doc-4', type: 'K1', title: 'Vehicle registration (K1)', status: 'MISSING'),
     DocItem(id: 'doc-5', type: 'CMR', title: 'CMR insurance certificate', status: 'APPROVED', fileName: 'cmr.pdf', updatedAt: DateTime.now().subtract(const Duration(days: 40))),
   ];
 
@@ -617,7 +617,7 @@ class MockData {
         TrackingStep(code: 'ACCEPTED', labelKey: 'trackAccepted', done: true, at: DateTime.now().subtract(const Duration(hours: 20))),
         TrackingStep(code: 'PICKED_UP', labelKey: 'trackPickedUp', done: true, at: DateTime.now().subtract(const Duration(hours: 6)), note: 'Dock B2'),
         TrackingStep(code: 'IN_TRANSIT', labelKey: 'trackInTransit', done: true, at: DateTime.now().subtract(const Duration(hours: 4))),
-        TrackingStep(code: 'DELIVERED', labelKey: 'trackDelivered', done: false),
+        const TrackingStep(code: 'DELIVERED', labelKey: 'trackDelivered', done: false),
       ],
     ),
   ];

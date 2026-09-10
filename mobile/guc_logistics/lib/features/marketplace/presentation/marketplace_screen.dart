@@ -237,7 +237,7 @@ class MarketplaceScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: country,
+                    initialValue: country,
                     isExpanded: true,
                     decoration: InputDecoration(labelText: l10n.country, border: const OutlineInputBorder()),
                     items: [
@@ -254,7 +254,7 @@ class MarketplaceScreen extends ConsumerWidget {
                 const SizedBox(width: GucSpacing.sm),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: region,
+                    initialValue: region,
                     isExpanded: true,
                     decoration: InputDecoration(labelText: l10n.regionState, border: const OutlineInputBorder()),
                     items: [
@@ -273,7 +273,7 @@ class MarketplaceScreen extends ConsumerWidget {
             ),
             const SizedBox(height: GucSpacing.sm),
             DropdownButtonFormField<String>(
-              value: city,
+              initialValue: city,
               isExpanded: true,
               decoration: InputDecoration(labelText: l10n.city, border: const OutlineInputBorder()),
               items: [

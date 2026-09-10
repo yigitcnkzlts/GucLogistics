@@ -129,7 +129,7 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
           Text('Konum ve uygunluk penceresi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
-            value: _a.country,
+            initialValue: _a.country,
             decoration: InputDecoration(labelText: l10n.country),
             items: EuropeGeo.countries.map((c) => DropdownMenuItem(value: c, child: Text(EuropeGeo.countryLabel(c)))).toList(),
             onChanged: (v) {
@@ -164,7 +164,7 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
           Text('Araç ve rota tercihleri', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
-            value: regions.contains(_a.region) ? _a.region : regions.first,
+            initialValue: regions.contains(_a.region) ? _a.region : regions.first,
             decoration: InputDecoration(labelText: l10n.regionState),
             items: regions.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
             onChanged: (v) {
@@ -175,7 +175,7 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
           ),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
-            value: cities.contains(_a.city) ? _a.city : (cities.isNotEmpty ? cities.first : null),
+            initialValue: cities.contains(_a.city) ? _a.city : (cities.isNotEmpty ? cities.first : null),
             decoration: InputDecoration(labelText: l10n.city),
             items: cities.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (v) => setState(() => _a = _a.copyWith(city: v)),
@@ -196,7 +196,7 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
             onChanged: (v) => setState(() => _a = _a.copyWith(adrReady: v)),
           ),
           DropdownButtonFormField<String>(
-            value: _a.vehicleFilter,
+            initialValue: _a.vehicleFilter,
             decoration: InputDecoration(labelText: l10n.vehicleType),
             items: const ['Any', 'Curtain trailer', 'Reefer trailer', 'Lowbed', 'Flatbed', 'Box truck 18t']
                 .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -205,7 +205,7 @@ class _CarrierAvailabilityScreenState extends ConsumerState<CarrierAvailabilityS
           ),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
-            value: EuropeGeo.countries.contains(_a.preferredDestination) ? _a.preferredDestination : 'Any',
+            initialValue: EuropeGeo.countries.contains(_a.preferredDestination) ? _a.preferredDestination : 'Any',
             decoration: const InputDecoration(labelText: 'Tercih edilen varış ülkesi'),
             items: [const DropdownMenuItem(value: 'Any', child: Text('Farketmez')), ...EuropeGeo.countries.map((c) => DropdownMenuItem(value: c, child: Text(EuropeGeo.countryLabel(c))))],
             onChanged: (v) => setState(() => _a = _a.copyWith(preferredDestination: v)),

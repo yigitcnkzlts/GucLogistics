@@ -81,7 +81,6 @@ class MarketplaceRepository {
         if (!pref.tailLift) {
           items = items.where((e) => !e.tailLift).toList();
         }
-        final now = DateTime.now();
         if (pref.availableFrom != null) {
           items = items.where((e) => !e.loadDate.isBefore(pref.availableFrom!)).toList();
         }

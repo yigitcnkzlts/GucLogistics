@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/data/mock/mock_data.dart';
 import '../../../core/di/providers.dart';
-import '../../../core/domain/models.dart';
 import '../../../core/domain/ops_models.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/services/platform_services.dart';
@@ -191,14 +190,14 @@ class _FleetAssignScreenState extends ConsumerState<FleetAssignScreen> {
           Text(l10n.fleetAssignHint),
           const SizedBox(height: GucSpacing.md),
           DropdownButtonFormField<String>(
-            value: _vehicleId,
+            initialValue: _vehicleId,
             decoration: InputDecoration(labelText: l10n.vehicles),
             items: fleet.map((v) => DropdownMenuItem(value: v.id, child: Text('${v.plate} · ${v.type}'))).toList(),
             onChanged: (v) => setState(() => _vehicleId = v),
           ),
           const SizedBox(height: GucSpacing.sm),
           DropdownButtonFormField<String>(
-            value: _driverId,
+            initialValue: _driverId,
             decoration: InputDecoration(labelText: l10n.driver),
             items: team.map((t) => DropdownMenuItem(value: t.id, child: Text('${t.name} (${t.role})'))).toList(),
             onChanged: (v) => setState(() => _driverId = v),
@@ -208,10 +207,9 @@ class _FleetAssignScreenState extends ConsumerState<FleetAssignScreen> {
             label: l10n.assignDriver,
             onPressed: () async {
               await ref.read(opsRepositoryProvider).assignDriver(vehicleId: _vehicleId!, driverId: _driverId!);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.driverAssigned)));
-                context.pop();
-              }
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.driverAssigned)));
+              context.pop();
             },
           ),
           const SizedBox(height: GucSpacing.md),
