@@ -50,6 +50,8 @@ springdoc:
     path: /swagger-ui.html
 
 guc:
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,https://*.guclogistics.com,https://logiway-control-center.seryigido23.chatgpt.site}
   security:
     jwt:
       issuer: guclogistics

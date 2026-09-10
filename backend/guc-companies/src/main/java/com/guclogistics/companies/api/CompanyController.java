@@ -1,6 +1,8 @@
 package com.guclogistics.companies.api;
 
 import com.guclogistics.companies.application.CompanyService;
+import com.guclogistics.companies.application.CompanyDashboardService;
+import com.guclogistics.companies.application.dto.CompanyDashboardResponse;
 import com.guclogistics.companies.application.dto.CompanyResponse;
 import com.guclogistics.companies.application.dto.CreateCompanyRequest;
 import com.guclogistics.companies.application.dto.UpdateCompanyRequest;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final CompanyDashboardService companyDashboardService;
 
     @PostMapping
     public CompanyResponse create(
@@ -41,6 +44,15 @@ public class CompanyController {
             @PathVariable UUID id
     ) {
         return companyService.getById(id, user.userId());
+    }
+
+    @GetMapping("/{id}/dashboard")
+    public CompanyDashboardResponse dashboard(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "12") int months
+    ) {
+        return companyDashboardService.get(id, user.userId(), months);
     }
 
     @PatchMapping("/{id}")

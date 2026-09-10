@@ -16,6 +16,8 @@ public interface OfferJpaRepository extends JpaRepository<OfferEntity, UUID> {
 
     List<OfferEntity> findByLoadIdAndStatus(UUID loadId, OfferStatus status);
 
+    List<OfferEntity> findByLoadIdOrderByCreatedAtDesc(UUID loadId);
+
     Optional<OfferEntity> findByIdAndCreatedByUserId(UUID id, UUID createdByUserId);
 
     @Modifying

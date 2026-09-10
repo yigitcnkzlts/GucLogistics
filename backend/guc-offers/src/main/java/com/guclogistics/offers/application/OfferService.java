@@ -78,9 +78,7 @@ public class OfferService {
                 .orElseThrow(() -> DomainException.notFound("Offer not found"));
 
         LoadSnapshot load = requireLoad(offer.getLoadId());
-        if (!load.createdByUserId().equals(userId)) {
-            throw DomainException.forbidden("Only the load owner can accept offers");
-        }
+        requireLoadManager(load, userId);
         if (offer.getStatus() != OfferStatus.PENDING) {
             throw DomainException.business("Only pending offers can be accepted");
         }
@@ -123,9 +121,7 @@ public class OfferService {
                 .orElseThrow(() -> DomainException.notFound("Offer not found"));
 
         LoadSnapshot load = requireLoad(offer.getLoadId());
-        if (!load.createdByUserId().equals(userId)) {
-            throw DomainException.forbidden("Only the load owner can reject offers");
-        }
+        requireLoadManager(load, userId);
         if (offer.getStatus() != OfferStatus.PENDING) {
             throw DomainException.business("Only pending offers can be rejected");
         }
@@ -160,6 +156,25 @@ public class OfferService {
         return offerRepository.findByCreatedByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OfferResponse> listForLoad(UUID loadId, UUID userId) {
+        LoadSnapshot load = requireLoad(loadId);
+        requireLoadManager(load, userId);
+        return offerRepository.findByLoadIdOrderByCreatedAtDesc(loadId).stream().map(this::toResponse).toList();
+    }
+
+    private void requireLoadManager(LoadSnapshot load, UUID userId) {
+        if (load.createdByUserId().equals(userId)) return;
+        Number membership = (Number) entityManager.createNativeQuery("""
+                        SELECT COUNT(*) FROM company_members
+                        WHERE company_id = ?1 AND user_id = ?2 AND member_role IN ('OWNER','ADMIN')
+                        """)
+                .setParameter(1, load.shipperCompanyId())
+                .setParameter(2, userId)
+                .getSingleResult();
+        if (membership.longValue() == 0L) throw DomainException.forbidden("Only the load company can manage offers");
     }
 
     private UUID resolveOffererId(UUID userId, CreateOfferRequest request) {
@@ -201,7 +216,7 @@ public class OfferService {
     private LoadSnapshot requireLoad(UUID loadId) {
         try {
             Object[] row = (Object[]) entityManager.createNativeQuery("""
-                            SELECT id, status, created_by_user_id, version
+                            SELECT id, status, created_by_user_id, version, shipper_company_id
                             FROM loads
                             WHERE id = ?1
                             """)
@@ -211,7 +226,8 @@ public class OfferService {
                     (UUID) row[0],
                     row[1].toString(),
                     (UUID) row[2],
-                    ((Number) row[3]).longValue()
+                    ((Number) row[3]).longValue(),
+                    (UUID) row[4]
             );
         } catch (NoResultException e) {
             throw DomainException.notFound("Load not found");
@@ -243,6 +259,6 @@ public class OfferService {
         );
     }
 
-    private record LoadSnapshot(UUID id, String status, UUID createdByUserId, long version) {
+    private record LoadSnapshot(UUID id, String status, UUID createdByUserId, long version, UUID shipperCompanyId) {
     }
 }
