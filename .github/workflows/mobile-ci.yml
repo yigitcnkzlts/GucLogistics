@@ -28,3 +28,12 @@ jobs:
       - name: Test
         working-directory: mobile/guc_logistics
         run: flutter test
+      - name: Build installable demo APK
+        working-directory: mobile/guc_logistics
+        run: flutter build apk --debug --dart-define=USE_MOCK_DATA=true
+      - name: Upload demo APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GucLogistics-Android-demo
+          path: mobile/guc_logistics/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

@@ -94,8 +94,16 @@ class SideLoginScreen extends ConsumerStatefulWidget {
 
 class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'demo@guclogistics.com');
-  final _password = TextEditingController(text: 'DemoPass123!');
+  late final TextEditingController _email;
+  late final TextEditingController _password;
+
+  @override
+  void initState() {
+    super.initState();
+    final shipper = widget.audience == AuthAudience.shipper;
+    _email = TextEditingController(text: shipper ? 'shipper@guclogistics.com' : 'driver@guclogistics.com');
+    _password = TextEditingController(text: shipper ? 'GucShipper2026!' : 'GucDriver2026!');
+  }
 
   @override
   void dispose() {
@@ -122,13 +130,19 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     final ok = await ref.read(authControllerProvider.notifier).login(_email.text.trim(), _password.text);
     if (!mounted || !ok) return;
+    final apiRoles = ref.read(authControllerProvider).roles;
+    final role = apiRoles.isEmpty ? null : UserRole.fromApi(apiRoles.first);
+    if (role != null) await ref.read(appSettingsProvider.notifier).setRole(role);
     await _afterAuth();
   }
 
   Future<void> _social(String provider) async {
-    final email = provider == 'google' ? 'google.user@guclogistics.com' : 'apple.user@guclogistics.com';
-    final ok = await ref.read(authControllerProvider.notifier).login(email, 'SocialLogin!1');
+    final shipper = widget.audience == AuthAudience.shipper;
+    final email = shipper ? 'shipper@guclogistics.com' : 'driver@guclogistics.com';
+    final password = shipper ? 'GucShipper2026!' : 'GucDriver2026!';
+    final ok = await ref.read(authControllerProvider.notifier).login(email, password);
     if (!mounted || !ok) return;
+    await ref.read(appSettingsProvider.notifier).setRole(shipper ? UserRole.shipper : UserRole.independentDriver);
     await _afterAuth();
   }
 
@@ -149,6 +163,23 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(l10n.login, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: GucSpacing.sm),
+                GucCard(
+                  child: Row(
+                    children: [
+                      Icon(isShipper ? Icons.business_outlined : Icons.local_shipping_outlined, color: GucColors.freightOrange),
+                      const SizedBox(width: GucSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          isShipper
+                              ? 'Demo yük veren\nshipper@guclogistics.com\nGucShipper2026!'
+                              : 'Demo şoför\ndriver@guclogistics.com\nGucDriver2026!',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: GucSpacing.lg),
                 GucTextField(
                   label: l10n.email,

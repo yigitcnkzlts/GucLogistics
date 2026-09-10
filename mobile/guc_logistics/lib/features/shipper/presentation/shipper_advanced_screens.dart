@@ -287,9 +287,16 @@ class ReportsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final role = ref.watch(appSettingsProvider).role;
+    final driverSide = role?.isDriverSide ?? false;
     final spent = MockData.offers.where((o) => o.status == 'ACCEPTED').fold<double>(0, (a, b) => a + b.amount);
+    final revenueTry = MockData.earnings.fold<double>(0, (a, b) => a + b.amount);
     final published = MockData.loads.where((e) => e.status == 'PUBLISHED').length;
     final matched = MockData.loads.where((e) => e.status == 'MATCHED').length;
+    final completed = MockData.shipments.where((e) => e.steps.any((s) => s.code == 'DELIVERED' && s.done)).length;
+    final totalOffers = MockData.offers.length;
+    final acceptedOffers = MockData.offers.where((o) => o.status == 'ACCEPTED').length;
+    final conversion = totalOffers == 0 ? 0 : acceptedOffers / totalOffers;
     final onTime = 0.94;
 
     return Scaffold(
@@ -297,12 +304,25 @@ class ReportsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(GucSpacing.md),
         children: [
-          _stat(context, l10n.monthlySpend, '€${spent.toStringAsFixed(0)}'),
-          _stat(context, l10n.activeListings, '$published'),
-          _stat(context, l10n.matchedLoads, '$matched'),
+          GucCard(
+            child: Row(children: [
+              Icon(driverSide ? Icons.local_shipping_outlined : Icons.business_outlined, color: GucColors.freightOrange, size: 32),
+              const SizedBox(width: GucSpacing.md),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(driverSide ? 'Taşıyıcı performans raporu' : 'Yük veren operasyon raporu', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text('Son güncelleme: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}'),
+              ])),
+            ]),
+          ),
+          const SizedBox(height: GucSpacing.md),
+          _stat(context, driverSide ? 'Toplam kazanç' : l10n.monthlySpend, driverSide ? '₺${revenueTry.toStringAsFixed(0)}' : '€${spent.toStringAsFixed(0)}'),
+          _stat(context, driverSide ? 'Uygun aktif yükler' : l10n.activeListings, '$published'),
+          _stat(context, driverSide ? 'Kazanılan işler' : l10n.matchedLoads, '$matched'),
+          _stat(context, 'Tamamlanan sefer', '$completed'),
+          _stat(context, 'Teklif başarı oranı', '${(conversion * 100).toStringAsFixed(0)}%'),
           _stat(context, l10n.onTimeRate, '${(onTime * 100).toStringAsFixed(0)}%'),
           const SizedBox(height: GucSpacing.md),
-          Text(l10n.corridorSpend, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          Text(driverSide ? 'Koridor kazancı' : l10n.corridorSpend, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: GucSpacing.sm),
           ...['DE → FR', 'NL → PL', 'IT → AT'].map(
             (c) => ListTile(

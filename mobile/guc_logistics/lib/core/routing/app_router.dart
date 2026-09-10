@@ -80,6 +80,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           loc != '/role-select/carrier') {
         return '/role-select';
       }
+      final role = settings.role;
+      if (auth.isAuthenticated && role != null) {
+        final shipperOnly = loc == '/loads/create' ||
+            loc == '/loads/batch' ||
+            loc.startsWith('/shipper/') ||
+            loc.startsWith('/admin/');
+        final carrierOnly = loc == '/vehicles' ||
+            loc.startsWith('/carrier/') ||
+            (loc.startsWith('/loads/') && loc.endsWith('/offer'));
+        if (shipperOnly && !role.isShipperSide) return '/home';
+        if (carrierOnly && !role.isDriverSide) return '/home';
+      }
       return null;
     },
     routes: [
@@ -174,6 +186,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/shipper/ledger', builder: (_, __) => const PaymentLedgerScreen()),
       GoRoute(path: '/shipper/einvoice', builder: (_, __) => const EInvoiceScreen()),
       GoRoute(path: '/shipper/reports', builder: (_, __) => const ReportsScreen()),
+      GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
       GoRoute(path: '/shipper/permissions', builder: (_, __) => const DispatcherPermissionsScreen()),
       GoRoute(path: '/shipper/push', builder: (_, __) => const PushSimulationScreen()),
       GoRoute(path: '/carrier/earnings', builder: (_, __) => const CarrierEarningsScreen()),

@@ -49,14 +49,22 @@ class AuthRepository {
   }) async {
     if (AppConfig.useMockData) {
       await Future<void>.delayed(const Duration(milliseconds: 400));
+      final normalized = email.trim().toLowerCase();
+      final isShipperDemo = normalized == 'shipper@guclogistics.com' && password == 'GucShipper2026!';
+      final isDriverDemo = normalized == 'driver@guclogistics.com' && password == 'GucDriver2026!';
+      if (!isShipperDemo && !isDriverDemo) {
+        throw StateError('Demo hesabı bilgileri hatalı.');
+      }
+      final role = isShipperDemo ? 'SHIPPER' : 'INDEPENDENT_DRIVER';
       await _storage.write(key: 'access_token', value: 'mock-access');
       await _storage.write(key: 'refresh_token', value: 'mock-refresh');
       await _storage.write(key: 'email', value: email);
+      await _storage.write(key: 'role_api', value: role);
       return {
         'accessToken': 'mock-access',
         'refreshToken': 'mock-refresh',
         'email': email,
-        'roles': ['SHIPPER'],
+        'roles': [role],
         'mfaRequired': false,
       };
     }
