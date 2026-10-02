@@ -4,10 +4,12 @@ import com.guclogistics.vehicles.application.dto.CreateVehicleRequest;
 import com.guclogistics.vehicles.application.dto.UpdateVehicleRequest;
 import com.guclogistics.vehicles.application.dto.VehicleResponse;
 import com.guclogistics.vehicles.domain.VehicleStatus;
+import com.guclogistics.vehicles.domain.OwnerType;
 import com.guclogistics.vehicles.infrastructure.persistence.VehicleEntity;
 import com.guclogistics.vehicles.infrastructure.persistence.VehicleJpaRepository;
 import com.guclogistics.shared.exception.DomainException;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +21,14 @@ import java.util.UUID;
 public class VehicleService {
 
     private final VehicleJpaRepository repository;
+    private final EntityManager entityManager;
 
     @Transactional
     public VehicleResponse create(UUID userId, CreateVehicleRequest request) {
+        if (request.ownerType() == OwnerType.USER && !request.ownerId().equals(userId)) {
+            throw DomainException.forbidden("Cannot create a vehicle for another user");
+        }
+        if (request.ownerType() == OwnerType.COMPANY) requireCompanyMember(request.ownerId(), userId);
         VehicleEntity vehicle = new VehicleEntity();
         vehicle.setOwnerType(request.ownerType());
         vehicle.setOwnerId(request.ownerId());
@@ -38,7 +45,7 @@ public class VehicleService {
 
     @Transactional(readOnly = true)
     public List<VehicleResponse> listMine(UUID userId) {
-        return repository.findByCreatedByUserIdOrderByCreatedAtDesc(userId).stream()
+        return repository.findAccessible(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -82,8 +89,15 @@ public class VehicleService {
     }
 
     private VehicleEntity requireOwned(UUID vehicleId, UUID userId) {
-        return repository.findByIdAndCreatedByUserId(vehicleId, userId)
+        return repository.findAccessibleById(vehicleId, userId)
                 .orElseThrow(() -> DomainException.forbidden("Vehicle not found or access denied"));
+    }
+
+    private void requireCompanyMember(UUID companyId, UUID userId) {
+        Number count = (Number) entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM company_members WHERE company_id=?1 AND user_id=?2")
+                .setParameter(1, companyId).setParameter(2, userId).getSingleResult();
+        if (count.longValue() == 0L) throw DomainException.forbidden("Company vehicle access denied");
     }
 
     private VehicleResponse toResponse(VehicleEntity vehicle) {

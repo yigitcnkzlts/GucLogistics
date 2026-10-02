@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +31,8 @@ class VehicleServiceTest {
 
     @Mock
     private VehicleJpaRepository repository;
+    @Mock
+    private EntityManager entityManager;
 
     @InjectMocks
     private VehicleService vehicleService;
@@ -42,6 +46,10 @@ class VehicleServiceTest {
                 BigDecimal.valueOf(10000), BigDecimal.valueOf(50));
 
         when(repository.save(any(VehicleEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        Query query = org.mockito.Mockito.mock(Query.class);
+        when(entityManager.createNativeQuery(any())).thenReturn(query);
+        when(query.setParameter(org.mockito.ArgumentMatchers.anyInt(), any())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(1L);
 
         var response = vehicleService.create(userId, request);
 
@@ -54,7 +62,7 @@ class VehicleServiceTest {
     void listMineReturnsOwnedVehicles() {
         UUID userId = UUID.randomUUID();
         VehicleEntity vehicle = vehicle(userId);
-        when(repository.findByCreatedByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(vehicle));
+        when(repository.findAccessible(userId)).thenReturn(List.of(vehicle));
 
         assertThat(vehicleService.listMine(userId)).hasSize(1);
     }
@@ -66,7 +74,7 @@ class VehicleServiceTest {
         VehicleEntity vehicle = vehicle(userId);
         vehicle.setId(vehicleId);
 
-        when(repository.findByIdAndCreatedByUserId(vehicleId, userId)).thenReturn(Optional.of(vehicle));
+        when(repository.findAccessibleById(vehicleId, userId)).thenReturn(Optional.of(vehicle));
 
         assertThat(vehicleService.getById(vehicleId, userId).plate()).isEqualTo("34ABC123");
     }
@@ -76,7 +84,7 @@ class VehicleServiceTest {
         UUID vehicleId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();
 
-        when(repository.findByIdAndCreatedByUserId(vehicleId, otherUserId)).thenReturn(Optional.empty());
+        when(repository.findAccessibleById(vehicleId, otherUserId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> vehicleService.getById(vehicleId, otherUserId))
                 .isInstanceOf(DomainException.class)
@@ -96,7 +104,7 @@ class VehicleServiceTest {
         VehicleEntity vehicle = vehicle(userId);
         vehicle.setId(vehicleId);
 
-        when(repository.findByIdAndCreatedByUserId(vehicleId, userId)).thenReturn(Optional.of(vehicle));
+        when(repository.findAccessibleById(vehicleId, userId)).thenReturn(Optional.of(vehicle));
         when(repository.save(vehicle)).thenReturn(vehicle);
 
         var response = vehicleService.update(vehicleId, userId,
@@ -113,7 +121,7 @@ class VehicleServiceTest {
         UUID userId = UUID.randomUUID();
         VehicleEntity vehicle = vehicle(userId);
 
-        when(repository.findByIdAndCreatedByUserId(vehicleId, userId)).thenReturn(Optional.of(vehicle));
+        when(repository.findAccessibleById(vehicleId, userId)).thenReturn(Optional.of(vehicle));
 
         vehicleService.delete(vehicleId, userId);
 

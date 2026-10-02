@@ -3,7 +3,7 @@ class AppConfig {
 
   static const bool useMockData = bool.fromEnvironment(
     'USE_MOCK_DATA',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static const String apiBaseUrl = String.fromEnvironment(

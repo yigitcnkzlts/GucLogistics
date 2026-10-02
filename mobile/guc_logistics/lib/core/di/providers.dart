@@ -6,6 +6,8 @@ import 'package:hive/hive.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/domain/user_role.dart';
 import '../../features/auth/presentation/auth_controller.dart';
+import '../../features/company/data/company_repository.dart';
+import '../../features/drivers/data/drivers_repository.dart';
 import '../../features/loads/data/loads_repository.dart';
 import '../../features/marketplace/data/marketplace_repository.dart';
 import '../../features/matching/data/matches_repository.dart';
@@ -30,6 +32,14 @@ final loadsCacheBoxProvider = Provider<Box<String>>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(apiClientProvider), ref.watch(secureStorageProvider));
+});
+
+final companyRepositoryProvider = Provider<CompanyRepository>((ref) {
+  return CompanyRepository(ref.watch(apiClientProvider));
+});
+
+final driversRepositoryProvider = Provider<DriversRepository>((ref) {
+  return DriversRepository(ref.watch(apiClientProvider));
 });
 
 final loadsRepositoryProvider = Provider<LoadsRepository>((ref) {

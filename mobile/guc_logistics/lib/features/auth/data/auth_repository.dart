@@ -36,8 +36,18 @@ class AuthRepository {
       };
     }
     try {
-      final response = await _api.dio.get('/api/v1/me');
-      return Map<String, dynamic>.from(response.data as Map);
+      final response = await _api.dio.get('/api/v1/users/me');
+      final session = Map<String, dynamic>.from(response.data as Map);
+      final companies = await _api.dio.get('/api/v1/companies/mine');
+      final companyList = companies.data is List ? companies.data as List : const [];
+      if (companyList.isNotEmpty) {
+        final company = Map<String, dynamic>.from(companyList.first as Map);
+        session['companyId'] = company['id'];
+        session['companyName'] = company['tradeName'] ?? company['legalName'];
+        session['companyCountry'] = company['country'];
+        session['companyStatus'] = company['status'];
+      }
+      return session;
     } on DioException {
       return null;
     }
@@ -75,8 +85,23 @@ class AuthRepository {
       'platform': 'ANDROID',
       'deviceName': 'GucLogistics App',
     });
-    await _persistTokens(response.data as Map);
-    return Map<String, dynamic>.from(response.data as Map);
+    final data = Map<String, dynamic>.from(response.data as Map);
+    if (data['mfaRequired'] == true) return data;
+    await _persistTokens(data);
+    return data;
+  }
+
+  Future<Map<String, dynamic>> verifyMfa({required String mfaToken, required String code}) async {
+    final response = await _api.dio.post('/api/v1/auth/mfa/verify', data: {
+      'mfaToken': mfaToken,
+      'code': code,
+      'deviceFingerprint': 'flutter-android',
+      'platform': 'ANDROID',
+      'deviceName': 'GucLogistics App',
+    });
+    final data = Map<String, dynamic>.from(response.data as Map);
+    await _persistTokens(data);
+    return data;
   }
 
   Future<Map<String, dynamic>> register({
@@ -108,6 +133,8 @@ class AuthRepository {
       'password': password,
       'phone': phone,
       'role': role.apiValue,
+      'companyName': companyName,
+      'companyCountry': (country == null || country.length != 2) ? 'TR' : country.toUpperCase(),
       'deviceFingerprint': 'flutter-android',
       'platform': 'ANDROID',
       'deviceName': 'GucLogistics App',
@@ -115,15 +142,6 @@ class AuthRepository {
       'timezone': 'UTC',
     });
     await _persistTokens(response.data as Map);
-    if (role.isShipperSide && companyName != null && companyName.isNotEmpty) {
-      await _api.dio.post('/api/v1/companies', data: {
-        'type': role == UserRole.shipper ? 'SHIPPER' : 'LOGISTICS',
-        'legalName': companyName,
-        'tradeName': companyName,
-        'vatNumber': vatNumber,
-        'country': (country == null || country.length != 2) ? 'TR' : country.toUpperCase(),
-      });
-    }
     return Map<String, dynamic>.from(response.data as Map);
   }
 
@@ -151,9 +169,7 @@ class AuthRepository {
   Future<void> persistRoleApi(UserRole role) => _storage.write(key: 'role_api', value: role.apiValue);
 
   Future<void> _persistTokens(Map data) async {
-    if (data['mfaRequired'] == true) {
-      throw StateError('MFA required');
-    }
+    if (data['mfaRequired'] == true) throw StateError('MFA challenge must be completed');
     await _storage.write(key: 'access_token', value: data['accessToken'] as String);
     await _storage.write(key: 'refresh_token', value: data['refreshToken'] as String);
   }

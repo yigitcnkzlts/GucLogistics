@@ -22,6 +22,7 @@ public class MatchService {
 
     private final MatchJpaRepository matchRepository;
     private final DomainEventPublisher eventPublisher;
+    private final ShipmentService shipmentService;
 
     @Transactional(readOnly = true)
     public List<MatchResponse> listForUser(UUID userId) {
@@ -40,6 +41,7 @@ public class MatchService {
         MatchEntity saved;
         try {
             saved = matchRepository.save(match);
+            shipmentService.createForMatch(saved.getId(), saved.getLoadId(), saved.getOfferId());
         } catch (DataIntegrityViolationException e) {
             throw DomainException.conflict("Match already exists for this load or offer");
         }

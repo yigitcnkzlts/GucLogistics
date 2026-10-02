@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/data/mock/europe_geo.dart';
 import '../../../core/data/mock/mock_data.dart';
 import '../../../core/di/providers.dart';
@@ -17,7 +18,7 @@ import '../../marketplace/data/marketplace_repository.dart';
 final loadsListProvider = FutureProvider.autoDispose<List<LoadItem>>((ref) {
   final role = ref.watch(appSettingsProvider).role;
   final availableOnly = role?.isDriverSide ?? false;
-  return ref.watch(loadsRepositoryProvider).listLoads(availableOnly: availableOnly);
+  return ref.watch(loadsRepositoryProvider).listLoads(mine: !availableOnly,availableOnly: availableOnly);
 });
 
 final loadDetailProvider = FutureProvider.autoDispose.family<LoadItem, String>((ref, id) {
@@ -904,6 +905,7 @@ class _SubmitOfferScreenState extends ConsumerState<SubmitOfferScreen> {
   final _transitHours = TextEditingController(text: '24');
   List<VehicleItem> _vehicles = const [];
   String? _vehicleId;
+  String? _driverProfileId;
   DateTime _availableAt = DateTime.now().add(const Duration(days: 1));
   bool _loading = false;
 
@@ -914,10 +916,16 @@ class _SubmitOfferScreenState extends ConsumerState<SubmitOfferScreen> {
     super.initState();
     Future<void>(() async {
       try {
-        final vehicles = await ref.read(vehiclesRepositoryProvider).listMine();
+        final results = await Future.wait([
+          ref.read(vehiclesRepositoryProvider).listMine(),
+          ref.read(driversRepositoryProvider).getMine(),
+        ]);
+        final vehicles = results[0] as List<VehicleItem>;
+        final driver = results[1] as Map<String, dynamic>;
         if (!mounted) return;
         setState(() {
           _vehicles = vehicles;
+          _driverProfileId = driver['id']?.toString();
           if (vehicles.isNotEmpty) _selectVehicle(vehicles.first, rebuild: false);
         });
       } catch (_) {
@@ -949,6 +957,10 @@ class _SubmitOfferScreenState extends ConsumerState<SubmitOfferScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!AppConfig.useMockData && (_vehicleId == null || _driverProfileId == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aktif araç ve doğrulanmış sürücü profili gerekli.')));
+      return;
+    }
     final load = await ref.read(loadsRepositoryProvider).getLoad(widget.loadId);
     final selected = _vehicles.where((v) => v.id == _vehicleId);
     final warnings = <String>[
@@ -980,6 +992,7 @@ class _SubmitOfferScreenState extends ConsumerState<SubmitOfferScreen> {
             currency: 'EUR',
             message: _message.text.trim().isEmpty ? null : _message.text.trim(),
             vehicleId: _vehicleId,
+            driverProfileId: _driverProfileId,
             vehiclePlate: _plate.text.trim().toUpperCase(),
             vehicleType: _vehicleType.text.trim(),
             driverName: _driverName.text.trim(),

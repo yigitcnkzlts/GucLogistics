@@ -9,6 +9,7 @@ class AuthState {
     this.loading = true,
     this.email,
     this.roles = const [],
+    this.mfaToken,
     this.error,
   });
 
@@ -16,6 +17,7 @@ class AuthState {
   final bool loading;
   final String? email;
   final List<String> roles;
+  final String? mfaToken;
   final String? error;
 
   AuthState copyWith({
@@ -23,6 +25,7 @@ class AuthState {
     bool? loading,
     String? email,
     List<String>? roles,
+    String? mfaToken,
     String? error,
   }) {
     return AuthState(
@@ -30,6 +33,7 @@ class AuthState {
       loading: loading ?? this.loading,
       email: email ?? this.email,
       roles: roles ?? this.roles,
+      mfaToken: mfaToken ?? this.mfaToken,
       error: error,
     );
   }
@@ -58,6 +62,10 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final result = await _repository.login(email: email, password: password);
+      if (result['mfaRequired'] == true) {
+        state = AuthState(loading: false, email: email, mfaToken: result['accessToken'] as String?);
+        return false;
+      }
       state = AuthState(
         loading: false,
         isAuthenticated: true,
@@ -67,6 +75,20 @@ class AuthController extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       state = state.copyWith(loading: false, error: e.toString(), isAuthenticated: false);
+      return false;
+    }
+  }
+
+  Future<bool> verifyMfa(String code) async {
+    final token = state.mfaToken;
+    if (token == null) return false;
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final result = await _repository.verifyMfa(mfaToken: token, code: code);
+      state = AuthState(loading: false, isAuthenticated: true, email: state.email, roles: (result['roles'] as List?)?.map((e) => e.toString()).toList() ?? const []);
+      return true;
+    } catch (e) {
+      state = state.copyWith(loading: false, error: e.toString());
       return false;
     }
   }

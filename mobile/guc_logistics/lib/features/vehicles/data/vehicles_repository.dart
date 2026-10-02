@@ -52,14 +52,27 @@ class VehiclesRepository {
       return;
     }
     if (id == null) {
+      final companiesResponse = await _api.dio.get('/api/v1/companies/mine');
+      final companies = companiesResponse.data is List ? companiesResponse.data as List : const [];
+      String ownerType;
+      String ownerId;
+      if (companies.isNotEmpty) {
+        ownerType = 'COMPANY';
+        ownerId = (companies.first as Map)['id'].toString();
+      } else {
+        final me = await _api.dio.get('/api/v1/users/me');
+        ownerType = 'USER';
+        ownerId = (me.data as Map)['userId'].toString();
+      }
       await _api.dio.post('/api/v1/vehicles', data: {
+        'ownerType': ownerType,
+        'ownerId': ownerId,
         'plate': plate,
         'type': type,
         'capacityKg': capacityKg,
-        'status': status,
       });
     } else {
-      await _api.dio.put('/api/v1/vehicles/$id', data: {
+      await _api.dio.patch('/api/v1/vehicles/$id', data: {
         'plate': plate,
         'type': type,
         'capacityKg': capacityKg,

@@ -41,10 +41,12 @@ class _OfferNegotiationScreenState extends ConsumerState<OfferNegotiationScreen>
     if (amount == null || amount <= 0) return;
     setState(() => _busy = true);
     try {
+      final offer = await ref.read(offersRepositoryProvider).getOffer(widget.offerId);
       await ref.read(offersRepositoryProvider).counterOffer(
             offerId: widget.offerId,
             amount: amount,
             byRole: isShipper ? 'SHIPPER' : 'CARRIER',
+            expectedOfferVersion: offer.version,
             message: _message.text.trim().isEmpty ? null : _message.text.trim(),
           );
       ref.invalidate(offerDetailProvider(widget.offerId));

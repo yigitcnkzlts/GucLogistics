@@ -379,6 +379,7 @@ class OfferItem extends Equatable {
     this.driverName,
     this.driverPhone,
     this.availableAt,
+    this.version = 0,
   });
 
   final String id;
@@ -403,6 +404,7 @@ class OfferItem extends Equatable {
   final String? driverName;
   final String? driverPhone;
   final DateTime? availableAt;
+  final int version;
 
   bool get slaExpired => expiresAt != null && DateTime.now().isAfter(expiresAt!);
 
@@ -429,6 +431,7 @@ class OfferItem extends Equatable {
       driverName: json['driverName']?.toString(),
       driverPhone: json['driverPhone']?.toString(),
       availableAt: DateTime.tryParse(json['availableAt']?.toString() ?? ''),
+      version: (json['version'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -465,6 +468,7 @@ class OfferItem extends Equatable {
       driverName: driverName,
       driverPhone: driverPhone,
       availableAt: availableAt,
+      version: version,
     );
   }
 

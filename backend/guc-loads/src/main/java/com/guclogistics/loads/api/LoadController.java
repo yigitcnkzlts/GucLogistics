@@ -29,16 +29,14 @@ public class LoadController {
     @ResponseStatus(HttpStatus.CREATED)
     public LoadResponse create(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @Valid @RequestBody CreateLoadRequest request
-    ) {
+            @Valid @RequestBody CreateLoadRequest request) {
         return loadService.create(user.userId(), request);
     }
 
     @GetMapping("/{id}")
     public LoadResponse getById(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id
-    ) {
+            @PathVariable UUID id) {
         return loadService.getById(id, user.userId());
     }
 
@@ -46,17 +44,22 @@ public class LoadController {
     public LoadResponse update(
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateLoadRequest request
-    ) {
+            @Valid @RequestBody UpdateLoadRequest request) {
         return loadService.update(id, user.userId(), request);
     }
 
     @PostMapping("/{id}/publish")
     public LoadResponse publish(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable UUID id
-    ) {
+            @PathVariable UUID id) {
         return loadService.publish(id, user.userId());
+    }
+
+    @PostMapping("/{id}/cancel")
+    public LoadResponse cancel(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID id) {
+        return loadService.cancel(id, user.userId());
     }
 
     @GetMapping
@@ -67,11 +70,10 @@ public class LoadController {
             @RequestParam(required = false) String dropoffCountry,
             @RequestParam(required = false) BigDecimal minWeight,
             @RequestParam(required = false) BigDecimal maxWeight,
+            @RequestParam(defaultValue = "false") boolean mine,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
+            @RequestParam(defaultValue = "20") int size) {
         return loadService.search(
-                user.userId(), status, pickupCountry, dropoffCountry, minWeight, maxWeight, page, size
-        );
+                user.userId(), mine, status, pickupCountry, dropoffCountry, minWeight, maxWeight, page, size);
     }
 }

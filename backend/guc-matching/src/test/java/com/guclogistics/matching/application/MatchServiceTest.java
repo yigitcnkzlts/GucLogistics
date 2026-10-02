@@ -29,6 +29,8 @@ class MatchServiceTest {
     MatchJpaRepository matchRepository;
     @Mock
     DomainEventPublisher eventPublisher;
+    @Mock
+    ShipmentService shipmentService;
     @InjectMocks
     MatchService matchService;
 
@@ -49,6 +51,7 @@ class MatchServiceTest {
         ));
 
         verify(matchRepository).save(any(MatchEntity.class));
+        verify(shipmentService).createForMatch(any(), eq(loadId), eq(offerId));
         ArgumentCaptor<MatchCreatedEvent> captor = ArgumentCaptor.forClass(MatchCreatedEvent.class);
         verify(eventPublisher).publish(captor.capture());
         assertThat(captor.getValue().loadId()).isEqualTo(loadId);

@@ -37,6 +37,7 @@ public class LoadService {
         if (request.readyTo().isBefore(request.readyFrom())) {
             throw DomainException.business("ready_to must be after ready_from");
         }
+        requireCompanyMember(request.shipperCompanyId(), userId);
 
         LoadEntity load = new LoadEntity();
         load.setShipperCompanyId(request.shipperCompanyId());
@@ -49,11 +50,39 @@ public class LoadService {
         return toResponse(saved);
     }
 
+    private void requireCompanyMember(UUID companyId, UUID userId) {
+        Number membership = (Number) entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM company_members WHERE company_id = ?1 AND user_id = ?2")
+                .setParameter(1, companyId)
+                .setParameter(2, userId)
+                .getSingleResult();
+        if (membership.longValue() == 0) {
+            throw DomainException.forbidden("Only company members can create loads");
+        }
+    }
+
+    private boolean isCompanyMember(UUID companyId, UUID userId) {
+        Number membership = (Number) entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM company_members WHERE company_id = ?1 AND user_id = ?2")
+                .setParameter(1, companyId).setParameter(2, userId).getSingleResult();
+        return membership.longValue() > 0;
+    }
+
+    private LoadEntity requireCompanyLoad(UUID loadId, UUID userId) {
+        LoadEntity load = loadRepository.findById(loadId)
+                .orElseThrow(() -> DomainException.notFound("Load not found"));
+        if (!load.getCreatedByUserId().equals(userId) && !isCompanyMember(load.getShipperCompanyId(), userId)) {
+            throw DomainException.forbidden("Load company access denied");
+        }
+        return load;
+    }
+
     @Transactional(readOnly = true)
     public LoadResponse getById(UUID loadId, UUID userId) {
         LoadEntity load = loadRepository.findById(loadId)
                 .orElseThrow(() -> DomainException.notFound("Load not found"));
-        if (load.getStatus() == LoadStatus.DRAFT && !load.getCreatedByUserId().equals(userId)) {
+        if (load.getStatus() != LoadStatus.PUBLISHED && !load.getCreatedByUserId().equals(userId)
+                && !isCompanyMember(load.getShipperCompanyId(), userId)) {
             throw DomainException.forbidden("Access denied");
         }
         return toResponse(load);
@@ -61,8 +90,7 @@ public class LoadService {
 
     @Transactional
     public LoadResponse update(UUID loadId, UUID userId, UpdateLoadRequest request) {
-        LoadEntity load = loadRepository.findByIdAndCreatedByUserId(loadId, userId)
-                .orElseThrow(() -> DomainException.forbidden("Load not found or access denied"));
+        LoadEntity load = requireCompanyLoad(loadId, userId);
         if (load.getStatus() != LoadStatus.DRAFT) {
             throw DomainException.business("Only draft loads can be updated");
         }
@@ -77,8 +105,7 @@ public class LoadService {
 
     @Transactional
     public LoadResponse publish(UUID loadId, UUID userId) {
-        LoadEntity load = loadRepository.findByIdAndCreatedByUserId(loadId, userId)
-                .orElseThrow(() -> DomainException.forbidden("Load not found or access denied"));
+        LoadEntity load = requireCompanyLoad(loadId, userId);
         if (load.getStatus() != LoadStatus.DRAFT) {
             throw DomainException.business("Only draft loads can be published");
         }
@@ -97,9 +124,21 @@ public class LoadService {
                 saved.getId(),
                 saved.getShipperCompanyId(),
                 saved.getCreatedByUserId(),
-                saved.getTitle()
-        ));
+                saved.getTitle()));
 
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public LoadResponse cancel(UUID loadId, UUID userId) {
+        LoadEntity load = requireCompanyLoad(loadId, userId);
+        if (load.getStatus() != LoadStatus.DRAFT && load.getStatus() != LoadStatus.PUBLISHED) {
+            throw DomainException.business("Only draft or published loads can be cancelled");
+        }
+        LoadStatus previous = load.getStatus();
+        load.setStatus(LoadStatus.CANCELLED);
+        LoadEntity saved = loadRepository.save(load);
+        recordStatusChange(saved.getId(), previous.name(), LoadStatus.CANCELLED.name(), userId);
         return toResponse(saved);
     }
 
@@ -112,24 +151,35 @@ public class LoadService {
             BigDecimal minWeight,
             BigDecimal maxWeight,
             int page,
-            int size
-    ) {
-        Page<LoadEntity> result = loadRepository.searchVisibleLoads(
-                userId,
-                status,
-                pickupCountry != null ? pickupCountry.toUpperCase() : null,
-                dropoffCountry != null ? dropoffCountry.toUpperCase() : null,
-                minWeight,
-                maxWeight,
-                PageRequest.of(page, size)
-        );
+            int size) {
+        return search(userId, false, status, pickupCountry, dropoffCountry, minWeight, maxWeight, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<LoadResponse> search(
+            UUID userId,
+            boolean mine,
+            LoadStatus status,
+            String pickupCountry,
+            String dropoffCountry,
+            BigDecimal minWeight,
+            BigDecimal maxWeight,
+            int page,
+            int size) {
+        String normalizedPickup = pickupCountry != null ? pickupCountry.toUpperCase() : null;
+        String normalizedDropoff = dropoffCountry != null ? dropoffCountry.toUpperCase() : null;
+        Page<LoadEntity> result = mine
+                ? loadRepository.searchMineLoads(userId, status != null ? status.name() : null, normalizedPickup,
+                        normalizedDropoff, minWeight, maxWeight, PageRequest.of(page, size))
+                : loadRepository.searchVisibleLoads(userId, status, normalizedPickup, normalizedDropoff, minWeight,
+                        maxWeight, PageRequest.of(page, size));
         return PageResponse.from(result.map(this::toResponse));
     }
 
     private String findCompanyStatus(UUID companyId) {
         try {
             Object result = entityManager.createNativeQuery(
-                            "SELECT status FROM companies WHERE id = ?1")
+                    "SELECT status FROM companies WHERE id = ?1")
                     .setParameter(1, companyId)
                     .getSingleResult();
             return result.toString();
@@ -188,24 +238,42 @@ public class LoadService {
     }
 
     private void applyUpdateFields(LoadEntity load, UpdateLoadRequest request) {
-        if (request.title() != null) load.setTitle(request.title());
-        if (request.description() != null) load.setDescription(request.description());
-        if (request.pickupCountry() != null) load.setPickupCountry(request.pickupCountry().toUpperCase());
-        if (request.pickupCity() != null) load.setPickupCity(request.pickupCity());
-        if (request.pickupAddress() != null) load.setPickupAddress(request.pickupAddress());
-        if (request.pickupLat() != null) load.setPickupLat(request.pickupLat());
-        if (request.pickupLng() != null) load.setPickupLng(request.pickupLng());
-        if (request.dropoffCountry() != null) load.setDropoffCountry(request.dropoffCountry().toUpperCase());
-        if (request.dropoffCity() != null) load.setDropoffCity(request.dropoffCity());
-        if (request.dropoffAddress() != null) load.setDropoffAddress(request.dropoffAddress());
-        if (request.dropoffLat() != null) load.setDropoffLat(request.dropoffLat());
-        if (request.dropoffLng() != null) load.setDropoffLng(request.dropoffLng());
-        if (request.readyFrom() != null) load.setReadyFrom(request.readyFrom());
-        if (request.readyTo() != null) load.setReadyTo(request.readyTo());
-        if (request.weightKg() != null) load.setWeightKg(request.weightKg());
-        if (request.volumeM3() != null) load.setVolumeM3(request.volumeM3());
-        if (request.vehicleRequirements() != null) load.setVehicleRequirements(request.vehicleRequirements());
-        if (request.currency() != null) load.setCurrency(request.currency().toUpperCase());
+        if (request.title() != null)
+            load.setTitle(request.title());
+        if (request.description() != null)
+            load.setDescription(request.description());
+        if (request.pickupCountry() != null)
+            load.setPickupCountry(request.pickupCountry().toUpperCase());
+        if (request.pickupCity() != null)
+            load.setPickupCity(request.pickupCity());
+        if (request.pickupAddress() != null)
+            load.setPickupAddress(request.pickupAddress());
+        if (request.pickupLat() != null)
+            load.setPickupLat(request.pickupLat());
+        if (request.pickupLng() != null)
+            load.setPickupLng(request.pickupLng());
+        if (request.dropoffCountry() != null)
+            load.setDropoffCountry(request.dropoffCountry().toUpperCase());
+        if (request.dropoffCity() != null)
+            load.setDropoffCity(request.dropoffCity());
+        if (request.dropoffAddress() != null)
+            load.setDropoffAddress(request.dropoffAddress());
+        if (request.dropoffLat() != null)
+            load.setDropoffLat(request.dropoffLat());
+        if (request.dropoffLng() != null)
+            load.setDropoffLng(request.dropoffLng());
+        if (request.readyFrom() != null)
+            load.setReadyFrom(request.readyFrom());
+        if (request.readyTo() != null)
+            load.setReadyTo(request.readyTo());
+        if (request.weightKg() != null)
+            load.setWeightKg(request.weightKg());
+        if (request.volumeM3() != null)
+            load.setVolumeM3(request.volumeM3());
+        if (request.vehicleRequirements() != null)
+            load.setVehicleRequirements(request.vehicleRequirements());
+        if (request.currency() != null)
+            load.setCurrency(request.currency().toUpperCase());
     }
 
     private LoadResponse toResponse(LoadEntity load) {
@@ -253,7 +321,6 @@ public class LoadService {
                 load.getStatus(),
                 load.getVersion(),
                 load.getCreatedAt(),
-                load.getUpdatedAt()
-        );
+                load.getUpdatedAt());
     }
 }

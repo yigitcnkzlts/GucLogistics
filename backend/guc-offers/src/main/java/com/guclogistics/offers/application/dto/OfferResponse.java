@@ -17,6 +17,7 @@ public record OfferResponse(
         String currency,
         String message,
         UUID vehicleId,
+        UUID driverProfileId,
         String vehiclePlate,
         String vehicleType,
         String driverName,

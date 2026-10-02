@@ -18,19 +18,29 @@ public record CreateOfferRequest(
         @NotBlank @Size(min = 3, max = 3) String currency,
         @Size(max = 1000) String message,
         Instant validUntil,
-        UUID vehicleId,
-        @NotBlank @Size(max = 32) String vehiclePlate,
-        @NotBlank @Size(max = 80) String vehicleType,
-        @NotBlank @Size(max = 120) String driverName,
-        @NotBlank @Size(max = 32) String driverPhone,
+        @NotNull UUID vehicleId,
+        @NotNull UUID driverProfileId,
+        @Size(max = 32) String vehiclePlate,
+        @Size(max = 80) String vehicleType,
+        @Size(max = 120) String driverName,
+        @Size(max = 32) String driverPhone,
         @Positive Integer estimatedTransitHours,
         Instant availableAt
 ) {
+    public CreateOfferRequest(
+            OffererType offererType, UUID offererId, BigDecimal amount, String currency, String message,
+            Instant validUntil, UUID vehicleId, String vehiclePlate, String vehicleType,
+            String driverName, String driverPhone, Integer estimatedTransitHours, Instant availableAt
+    ) {
+        this(offererType, offererId, amount, currency, message, validUntil, vehicleId, null,
+                vehiclePlate, vehicleType, driverName, driverPhone, estimatedTransitHours, availableAt);
+    }
+
     public CreateOfferRequest(
             OffererType offererType, UUID offererId, BigDecimal amount,
             String currency, String message, Instant validUntil
     ) {
         this(offererType, offererId, amount, currency, message, validUntil,
-                null, "UNASSIGNED", "UNASSIGNED", "UNASSIGNED", "UNASSIGNED", null, null);
+                null, null, null, null, null, null, null, null);
     }
 }

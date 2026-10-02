@@ -96,6 +96,7 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _email;
   late final TextEditingController _password;
+  late final TextEditingController _mfaCode;
 
   @override
   void initState() {
@@ -103,12 +104,14 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
     final shipper = widget.audience == AuthAudience.shipper;
     _email = TextEditingController(text: shipper ? 'shipper@guclogistics.com' : 'driver@guclogistics.com');
     _password = TextEditingController(text: shipper ? 'GucShipper2026!' : 'GucDriver2026!');
+    _mfaCode = TextEditingController();
   }
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _mfaCode.dispose();
     super.dispose();
   }
 
@@ -128,7 +131,11 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final ok = await ref.read(authControllerProvider.notifier).login(_email.text.trim(), _password.text);
+    final controller = ref.read(authControllerProvider.notifier);
+    final current = ref.read(authControllerProvider);
+    final ok = current.mfaToken != null
+        ? await controller.verifyMfa(_mfaCode.text.trim())
+        : await controller.login(_email.text.trim(), _password.text);
     if (!mounted || !ok) return;
     final apiRoles = ref.read(authControllerProvider).roles;
     final role = apiRoles.isEmpty ? null : UserRole.fromApi(apiRoles.first);
@@ -151,6 +158,7 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
     final l10n = AppLocalizations.of(context);
     final auth = ref.watch(authControllerProvider);
     final isShipper = widget.audience == AuthAudience.shipper;
+    final mfaRequired = auth.mfaToken != null;
 
     return Scaffold(
       appBar: AppBar(title: Text(isShipper ? l10n.shipperGateTitle : l10n.carrierGateTitle)),
@@ -162,7 +170,7 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l10n.login, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                Text(mfaRequired ? 'Güvenlik kodu' : l10n.login, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: GucSpacing.sm),
                 GucCard(
                   child: Row(
@@ -181,14 +189,21 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
                   ),
                 ),
                 const SizedBox(height: GucSpacing.lg),
-                GucTextField(
+                if (mfaRequired)
+                  GucTextField(
+                    label: 'Authenticator kodu',
+                    controller: _mfaCode,
+                    keyboardType: TextInputType.number,
+                    validator: (v) => v == null || v.trim().length < 6 ? '6 haneli kod gerekli' : null,
+                  ),
+                if (!mfaRequired) GucTextField(
                   label: l10n.email,
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => AuthValidators.email(v, l10n.invalidEmail),
                 ),
                 const SizedBox(height: GucSpacing.sm),
-                GucTextField(
+                if (!mfaRequired) GucTextField(
                   label: l10n.password,
                   controller: _password,
                   obscureText: true,
@@ -196,12 +211,12 @@ class _SideLoginScreenState extends ConsumerState<SideLoginScreen> {
                 ),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton(onPressed: () => context.push('/forgot-password'), child: Text(l10n.forgotPassword)),
+                  child: TextButton(onPressed: mfaRequired ? null : () => context.push('/forgot-password'), child: Text(l10n.forgotPassword)),
                 ),
                 if (auth.error != null)
                   Text(auth.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 const SizedBox(height: GucSpacing.md),
-                GucButton(label: l10n.login, loading: auth.loading, onPressed: _submit),
+                GucButton(label: mfaRequired ? 'Girişi tamamla' : l10n.login, loading: auth.loading, onPressed: _submit),
                 const SizedBox(height: GucSpacing.sm),
                 GucButton(
                   label: l10n.register,
@@ -310,17 +325,18 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
       setState(() => _legalError = l10n.acceptLegalRequired);
       return;
     }
+    final companyAccount = _role != UserRole.independentDriver;
     final ok = await ref.read(authControllerProvider.notifier).register(
           _email.text.trim(),
           _password.text,
           _role,
           phone: _phone.text.trim(),
-          companyName: widget.audience == AuthAudience.shipper ? _companyName.text.trim() : null,
-          vatNumber: widget.audience == AuthAudience.shipper ? _vatNumber.text.trim() : null,
-          country: widget.audience == AuthAudience.shipper ? _country.text.trim() : null,
+          companyName: companyAccount ? _companyName.text.trim() : null,
+          vatNumber: companyAccount ? _vatNumber.text.trim() : null,
+          country: companyAccount ? _country.text.trim() : null,
         );
     if (!mounted || !ok) return;
-    if (widget.audience == AuthAudience.carrier) {
+    if (!companyAccount) {
       final name = _displayName.text.trim();
       final phone = _phone.text.trim();
       if (name.isNotEmpty) MockData.driverDisplayName = name;
@@ -339,6 +355,7 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
     final l10n = AppLocalizations.of(context);
     final auth = ref.watch(authControllerProvider);
     final isShipper = widget.audience == AuthAudience.shipper;
+    final companyAccount = _role != UserRole.independentDriver;
 
     return Scaffold(
       appBar: AppBar(
@@ -374,7 +391,7 @@ class _SideRegisterScreenState extends ConsumerState<SideRegisterScreen> {
                   onChanged: (v) => setState(() => _role = v ?? _role),
                 ),
                 const SizedBox(height: GucSpacing.md),
-                if (!isShipper) ...[
+                if (!companyAccount) ...[
                   GucTextField(label: l10n.displayName, controller: _displayName, validator: (v) => (v == null || v.trim().isEmpty) ? l10n.requiredField : null),
                   const SizedBox(height: GucSpacing.sm),
                   GucTextField(

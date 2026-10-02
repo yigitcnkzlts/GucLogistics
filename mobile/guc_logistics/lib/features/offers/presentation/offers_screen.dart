@@ -10,7 +10,8 @@ import '../../../core/theme/guc_theme.dart';
 import '../../../core/widgets/guc_widgets.dart';
 
 final offersProvider = FutureProvider.autoDispose<List<OfferItem>>((ref) {
-  return ref.watch(offersRepositoryProvider).listMine();
+  final role=ref.watch(appSettingsProvider).role;
+  return role?.isShipperSide==true?ref.watch(offersRepositoryProvider).listIncoming():ref.watch(offersRepositoryProvider).listMine();
 });
 
 enum _OfferSort { priceAsc, priceDesc, trust, sla, newest }

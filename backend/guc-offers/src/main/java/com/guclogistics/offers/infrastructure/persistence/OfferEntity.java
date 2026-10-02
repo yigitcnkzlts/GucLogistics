@@ -44,6 +44,9 @@ public class OfferEntity {
     @Column(name = "vehicle_id")
     private UUID vehicleId;
 
+    @Column(name = "driver_profile_id")
+    private UUID driverProfileId;
+
     @Column(name = "vehicle_plate", nullable = false, length = 32)
     private String vehiclePlate;
 

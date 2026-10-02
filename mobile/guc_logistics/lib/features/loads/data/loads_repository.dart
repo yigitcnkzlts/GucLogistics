@@ -25,7 +25,12 @@ class LoadsRepository {
       return items;
     }
     try {
-      final response = await _api.dio.get('/api/v1/loads', queryParameters: {'page': 0, 'size': 50});
+      final response = await _api.dio.get('/api/v1/loads', queryParameters: {
+        'page': 0,
+        'size': 50,
+        'mine': mine,
+        if (availableOnly) 'status': 'PUBLISHED',
+      });
       final content = (response.data['content'] as List)
           .map((e) => LoadItem.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
@@ -248,12 +253,7 @@ class LoadsRepository {
     if (published) {
       await _api.dio.post('/api/v1/loads/$id/publish');
     } else {
-      // Backend may not expose unpublish yet — soft-fail via PATCH status.
-      try {
-        await _api.dio.post('/api/v1/loads/$id/unpublish');
-      } catch (_) {
-        await _api.dio.patch('/api/v1/loads/$id', data: {'status': 'DRAFT'});
-      }
+      await _api.dio.post('/api/v1/loads/$id/cancel');
     }
   }
 
@@ -265,7 +265,7 @@ class LoadsRepository {
       MockData.loads[i] = MockData.loads[i].copyWith(photos: photos);
       return;
     }
-    await _api.dio.post('/api/v1/loads/$id/photos', data: {'label': label});
+    throw UnsupportedError('Load photo upload is not available in the shared API yet.');
   }
 
   Future<void> republishFrom(LoadItem source) async {

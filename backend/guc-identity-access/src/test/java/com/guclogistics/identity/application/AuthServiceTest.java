@@ -17,6 +17,7 @@ import com.guclogistics.shared.exception.DomainException;
 import com.guclogistics.shared.exception.ErrorCode;
 import com.guclogistics.shared.featureflag.FeatureFlagService;
 import com.guclogistics.shared.security.AuthenticatedUser;
+import com.guclogistics.shared.events.identity.UserCompanyRegistrationRequestedEvent;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,19 +43,32 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock private UserJpaRepository userRepository;
-    @Mock private RoleJpaRepository roleRepository;
-    @Mock private UserSessionJpaRepository sessionRepository;
-    @Mock private UserDeviceJpaRepository deviceRepository;
-    @Mock private MfaSettingsJpaRepository mfaSettingsRepository;
-    @Mock private LoginAttemptJpaRepository loginAttemptRepository;
-    @Mock private JwtService jwtService;
-    @Mock private JwtProperties jwtProperties;
-    @Mock private TokenHasher tokenHasher;
-    @Mock private RateLimitService rateLimitService;
-    @Mock private FeatureFlagService featureFlagService;
-    @Mock private DomainEventPublisher eventPublisher;
-    @Mock private HttpServletRequest httpRequest;
+    @Mock
+    private UserJpaRepository userRepository;
+    @Mock
+    private RoleJpaRepository roleRepository;
+    @Mock
+    private UserSessionJpaRepository sessionRepository;
+    @Mock
+    private UserDeviceJpaRepository deviceRepository;
+    @Mock
+    private MfaSettingsJpaRepository mfaSettingsRepository;
+    @Mock
+    private LoginAttemptJpaRepository loginAttemptRepository;
+    @Mock
+    private JwtService jwtService;
+    @Mock
+    private JwtProperties jwtProperties;
+    @Mock
+    private TokenHasher tokenHasher;
+    @Mock
+    private RateLimitService rateLimitService;
+    @Mock
+    private FeatureFlagService featureFlagService;
+    @Mock
+    private DomainEventPublisher eventPublisher;
+    @Mock
+    private HttpServletRequest httpRequest;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -84,7 +98,7 @@ class AuthServiceTest {
     void registerSuccess() {
         RegisterRequest request = new RegisterRequest(
                 "NewUser@Example.com", "SecurePass123!", null, "SHIPPER",
-                "fp-1", "WEB", "Chrome", null, null);
+                "Modern Karton", "TR", "fp-1", "WEB", "Chrome", null, null);
 
         when(userRepository.existsByEmailIgnoreCase("NewUser@Example.com")).thenReturn(false);
         when(roleRepository.findByName("SHIPPER")).thenReturn(Optional.of(shipperRole));
@@ -108,14 +122,28 @@ class AuthServiceTest {
         assertThat(response.accessToken()).isEqualTo("access-token");
         assertThat(response.refreshToken()).isNotBlank();
         verify(eventPublisher).publish(any(UserRegisteredEvent.class));
+        verify(eventPublisher).publish(any(UserCompanyRegistrationRequestedEvent.class));
         verify(rateLimitService).checkRegister("127.0.0.1");
+    }
+
+    @Test
+    void companyRegistrationRequiresCompanyIdentity() {
+        RegisterRequest request = new RegisterRequest(
+                "missing-company@example.com", "SecurePass123!", null, "SHIPPER",
+                null, null, "fp-1", "WEB", null, null, null);
+        when(userRepository.existsByEmailIgnoreCase(request.email())).thenReturn(false);
+        when(roleRepository.findByName("SHIPPER")).thenReturn(Optional.of(shipperRole));
+
+        assertThatThrownBy(() -> authService.register(request, httpRequest))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("Company name and country");
     }
 
     @Test
     void registerDuplicateEmailConflict() {
         RegisterRequest request = new RegisterRequest(
                 "dup@example.com", "SecurePass123!", null, "SHIPPER",
-                "fp-1", "WEB", null, null, null);
+                "Modern Karton", "TR", "fp-1", "WEB", null, null, null);
 
         when(userRepository.existsByEmailIgnoreCase("dup@example.com")).thenReturn(true);
 
@@ -278,7 +306,8 @@ class AuthServiceTest {
     void listSessionsAndDevicesAndRevoke() {
         UUID userId = UUID.randomUUID();
         UUID sessionId = UUID.randomUUID();
-        AuthenticatedUser principal = new AuthenticatedUser(userId, sessionId, "u@example.com", Set.of("SHIPPER"), true);
+        AuthenticatedUser principal = new AuthenticatedUser(userId, sessionId, "u@example.com", Set.of("SHIPPER"),
+                true);
         UserSessionEntity session = activeSession(userId, UUID.randomUUID(), "r1");
         session.setId(sessionId);
         when(sessionRepository.findByUserIdAndRevokedAtIsNullOrderByCreatedAtDesc(userId))
@@ -298,7 +327,8 @@ class AuthServiceTest {
 
     @Test
     void revokeUnknownSessionThrowsNotFound() {
-        AuthenticatedUser principal = new AuthenticatedUser(UUID.randomUUID(), UUID.randomUUID(), "u@example.com", Set.of("SHIPPER"), true);
+        AuthenticatedUser principal = new AuthenticatedUser(UUID.randomUUID(), UUID.randomUUID(), "u@example.com",
+                Set.of("SHIPPER"), true);
         when(sessionRepository.revokeByIdAndUser(any(), any(), any())).thenReturn(0);
         assertThatThrownBy(() -> authService.revokeSession(principal, UUID.randomUUID()))
                 .isInstanceOf(DomainException.class)

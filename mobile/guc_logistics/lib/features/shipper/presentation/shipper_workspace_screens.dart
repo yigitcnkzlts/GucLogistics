@@ -110,7 +110,7 @@ class CompareOffersScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.compareOffers)),
       body: FutureBuilder<List<OfferItem>>(
-        future: ref.read(offersRepositoryProvider).listMine(),
+        future: ref.read(offersRepositoryProvider).listIncoming(),
         builder: (context, snap) {
           final items = (snap.data ?? const []).where((o) => o.status == 'PENDING' || o.status == 'COUNTERED').toList()
             ..sort((a, b) => a.amount.compareTo(b.amount));

@@ -13,11 +13,13 @@ import '../../auth/domain/user_role.dart';
 import '../../legal/presentation/legal_screens.dart';
 
 final homeLoadsProvider = FutureProvider.autoDispose<List<LoadItem>>((ref) {
-  return ref.watch(loadsRepositoryProvider).listLoads();
+  final role=ref.watch(appSettingsProvider).role;
+  return ref.watch(loadsRepositoryProvider).listLoads(mine: role?.isShipperSide??true,availableOnly: role?.isDriverSide??false);
 });
 
 final homeOffersProvider = FutureProvider.autoDispose<List<OfferItem>>((ref) {
-  return ref.watch(offersRepositoryProvider).listMine();
+  final role=ref.watch(appSettingsProvider).role;
+  return role?.isShipperSide==true?ref.watch(offersRepositoryProvider).listIncoming():ref.watch(offersRepositoryProvider).listMine();
 });
 
 final homeVehiclesProvider = FutureProvider.autoDispose<List<VehicleItem>>((ref) {

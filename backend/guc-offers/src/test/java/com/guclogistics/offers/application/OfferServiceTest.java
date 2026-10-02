@@ -53,11 +53,20 @@ class OfferServiceTest {
             lenient().when(query.setParameter(anyInt(), any())).thenReturn(query);
             if (sql.contains("SELECT id, status")) {
                 when(query.getSingleResult()).thenReturn(new Object[]{
-                        currentLoadId, currentLoadStatus, currentLoadOwner, currentLoadVersion});
+                        currentLoadId, currentLoadStatus, currentLoadOwner, currentLoadVersion, currentShipperCompanyId});
             } else if (sql.contains("UPDATE loads")) {
                 when(query.executeUpdate()).thenReturn(1);
             } else if (sql.contains("SELECT id FROM driver_profiles")) {
                 when(query.getSingleResult()).thenReturn(currentDriverProfileId);
+            } else if (sql.contains("FROM vehicles WHERE id")) {
+                when(query.getSingleResult()).thenReturn(new Object[]{
+                        currentVehicleId, "COMPANY", currentOffererCompanyId, "34 GUC 123", "CURTAINSIDER", "ACTIVE"});
+            } else if (sql.contains("FROM driver_profiles d JOIN users")) {
+                when(query.getSingleResult()).thenReturn(new Object[]{
+                        currentDriverProfileId, currentDriverUserId, currentOffererCompanyId, "VERIFIED",
+                        "driver@guclogistics.com", "+905551112233"});
+            } else if (sql.contains("shipper ownership check")) {
+                when(query.getSingleResult()).thenReturn(currentShipperMembershipCount);
             } else if (sql.contains("SELECT COUNT(*)")) {
                 when(query.getSingleResult()).thenReturn(currentMembershipCount);
             }
@@ -69,8 +78,13 @@ class OfferServiceTest {
     private String currentLoadStatus = "PUBLISHED";
     private UUID currentLoadOwner = UUID.randomUUID();
     private long currentLoadVersion = 1L;
+    private UUID currentShipperCompanyId = UUID.randomUUID();
     private UUID currentDriverProfileId = UUID.randomUUID();
+    private UUID currentDriverUserId = UUID.randomUUID();
+    private UUID currentVehicleId = UUID.randomUUID();
+    private UUID currentOffererCompanyId = UUID.randomUUID();
     private long currentMembershipCount = 1L;
+    private long currentShipperMembershipCount = 0L;
 
     @Test
     void submitOfferForPublishedLoad() {
@@ -79,10 +93,11 @@ class OfferServiceTest {
         currentLoadId = loadId;
         currentLoadStatus = "PUBLISHED";
 
-        UUID vehicleId = UUID.randomUUID();
+        UUID vehicleId = currentVehicleId;
+        currentOffererCompanyId = UUID.randomUUID();
         CreateOfferRequest request = new CreateOfferRequest(
-                OffererType.COMPANY, UUID.randomUUID(), BigDecimal.valueOf(500), "eur", "hello", null,
-                vehicleId, "34 GUC 123", "CURTAINSIDER", "Can Driver", "+905551112233", 18, null);
+                OffererType.COMPANY, currentOffererCompanyId, BigDecimal.valueOf(500), "eur", "hello", null,
+                vehicleId, currentDriverProfileId, null, null, null, null, 18, null);
 
         when(offerRepository.save(any(OfferEntity.class))).thenAnswer(inv -> {
             OfferEntity offer = inv.getArgument(0);
@@ -96,7 +111,7 @@ class OfferServiceTest {
         assertThat(response.currency()).isEqualTo("EUR");
         assertThat(response.vehicleId()).isEqualTo(vehicleId);
         assertThat(response.vehiclePlate()).isEqualTo("34 GUC 123");
-        assertThat(response.driverName()).isEqualTo("Can Driver");
+        assertThat(response.driverName()).isEqualTo("driver");
         assertThat(response.estimatedTransitHours()).isEqualTo(18);
         verify(eventPublisher).publish(any(OfferSubmittedEvent.class));
     }
@@ -121,7 +136,8 @@ class OfferServiceTest {
                 .thenThrow(new DataIntegrityViolationException("dup"));
 
         assertThatThrownBy(() -> offerService.submitOffer(loadId, UUID.randomUUID(),
-                new CreateOfferRequest(OffererType.DRIVER, null, BigDecimal.TEN, "EUR", null, null)))
+                new CreateOfferRequest(OffererType.COMPANY, currentOffererCompanyId, BigDecimal.TEN, "EUR", null, null,
+                        currentVehicleId, currentDriverProfileId, null, null, null, null, null, null)))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("pending offer already exists");
     }
@@ -150,6 +166,27 @@ class OfferServiceTest {
     }
 
     @Test
+    void loadOwnerCannotSubmitOwnOffer() {
+        UUID ownerId = UUID.randomUUID();
+        currentLoadOwner = ownerId;
+
+        assertThatThrownBy(() -> offerService.submitOffer(currentLoadId, ownerId,
+                new CreateOfferRequest(OffererType.DRIVER, null, BigDecimal.TEN, "EUR", null, null)))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("own loads");
+    }
+
+    @Test
+    void shipperCompanyMemberCannotSubmitOwnOffer() {
+        currentShipperMembershipCount = 1L;
+
+        assertThatThrownBy(() -> offerService.submitOffer(currentLoadId, UUID.randomUUID(),
+                new CreateOfferRequest(OffererType.DRIVER, null, BigDecimal.TEN, "EUR", null, null)))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("Shipper company members");
+    }
+
+    @Test
     void acceptByNonOwnerForbidden() {
         UUID offerId = UUID.randomUUID();
         UUID loadId = UUID.randomUUID();
@@ -157,13 +194,23 @@ class OfferServiceTest {
         UUID otherUserId = UUID.randomUUID();
         currentLoadId = loadId;
         currentLoadOwner = loadOwnerId;
+        currentMembershipCount = 0L;
 
         OfferEntity offer = pendingOffer(offerId, loadId, otherUserId);
         when(offerRepository.findById(offerId)).thenReturn(Optional.of(offer));
 
         assertThatThrownBy(() -> offerService.accept(offerId, otherUserId))
                 .isInstanceOf(DomainException.class)
-                .hasMessageContaining("load owner");
+                .hasMessageContaining("load company");
+
+    }
+
+    @Test
+    void otherCompanyCannotReadPrivateLoadOffers() {
+        currentMembershipCount = 0L;
+        assertThatThrownBy(() -> offerService.listForLoad(currentLoadId, UUID.randomUUID()))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("access denied");
     }
 
     @Test

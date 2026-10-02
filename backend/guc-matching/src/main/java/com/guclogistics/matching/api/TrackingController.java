@@ -42,12 +42,17 @@ public class TrackingController {
                 .stream().findFirst().orElseThrow(()->DomainException.notFound("Position not found"));
     }
 
-    private void requireDriver(UUID matchId,UUID userId){Long count=jdbc.queryForObject("SELECT COUNT(*) FROM matches m JOIN offers o ON o.id=m.offer_id WHERE m.id=? AND o.created_by_user_id=?",Long.class,matchId,userId);if(count==null||count==0)throw DomainException.forbidden("Only the assigned driver can update position");}
+    private void requireDriver(UUID matchId,UUID userId){Long count=jdbc.queryForObject("""
+            SELECT COUNT(*) FROM matches m JOIN offers o ON o.id=m.offer_id
+            JOIN driver_profiles dp ON dp.id=o.driver_profile_id
+            WHERE m.id=? AND dp.user_id=?
+            """,Long.class,matchId,userId);if(count==null||count==0)throw DomainException.forbidden("Only the assigned driver can update position");}
     private void requireParticipant(UUID matchId,UUID userId){Long count=jdbc.queryForObject("""
             SELECT COUNT(*) FROM matches m JOIN loads l ON l.id=m.load_id JOIN offers o ON o.id=m.offer_id
             WHERE m.id=? AND (l.created_by_user_id=? OR o.created_by_user_id=? OR EXISTS (
               SELECT 1 FROM company_members cm WHERE cm.user_id=?
-              AND cm.company_id IN (l.shipper_company_id,o.offerer_id)
+              AND (cm.company_id=l.shipper_company_id OR
+                (o.offerer_type='COMPANY' AND cm.company_id=o.offerer_id))
             ))
             """,Long.class,matchId,userId,userId,userId);if(count==null||count==0)throw DomainException.forbidden("Tracking access denied");}
 

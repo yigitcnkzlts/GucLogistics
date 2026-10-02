@@ -35,6 +35,38 @@ public interface LoadJpaRepository extends JpaRepository<LoadEntity, UUID> {
             @Param("dropoffCountry") String dropoffCountry,
             @Param("minWeight") BigDecimal minWeight,
             @Param("maxWeight") BigDecimal maxWeight,
-            Pageable pageable
-    );
+            Pageable pageable);
+
+    @Query(value = """
+            SELECT l.* FROM loads l
+            WHERE EXISTS (
+                SELECT 1 FROM company_members cm
+                WHERE cm.company_id = l.shipper_company_id AND cm.user_id = :userId
+            )
+            AND (:status IS NULL OR l.status = :status)
+            AND (:pickupCountry IS NULL OR l.pickup_country = :pickupCountry)
+            AND (:dropoffCountry IS NULL OR l.dropoff_country = :dropoffCountry)
+            AND (:minWeight IS NULL OR l.weight_kg >= :minWeight)
+            AND (:maxWeight IS NULL OR l.weight_kg <= :maxWeight)
+            ORDER BY l.created_at DESC
+            """, countQuery = """
+            SELECT COUNT(*) FROM loads l
+            WHERE EXISTS (
+                SELECT 1 FROM company_members cm
+                WHERE cm.company_id = l.shipper_company_id AND cm.user_id = :userId
+            )
+            AND (:status IS NULL OR l.status = :status)
+            AND (:pickupCountry IS NULL OR l.pickup_country = :pickupCountry)
+            AND (:dropoffCountry IS NULL OR l.dropoff_country = :dropoffCountry)
+            AND (:minWeight IS NULL OR l.weight_kg >= :minWeight)
+            AND (:maxWeight IS NULL OR l.weight_kg <= :maxWeight)
+            """, nativeQuery = true)
+    Page<LoadEntity> searchMineLoads(
+            @Param("userId") UUID userId,
+            @Param("status") String status,
+            @Param("pickupCountry") String pickupCountry,
+            @Param("dropoffCountry") String dropoffCountry,
+            @Param("minWeight") BigDecimal minWeight,
+            @Param("maxWeight") BigDecimal maxWeight,
+            Pageable pageable);
 }

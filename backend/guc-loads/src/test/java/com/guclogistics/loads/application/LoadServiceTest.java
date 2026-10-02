@@ -31,6 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -40,10 +41,14 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class LoadServiceTest {
 
-    @Mock private LoadJpaRepository loadRepository;
-    @Mock private LoadStatusHistoryJpaRepository historyRepository;
-    @Mock private DomainEventPublisher eventPublisher;
-    @Mock private EntityManager entityManager;
+    @Mock
+    private LoadJpaRepository loadRepository;
+    @Mock
+    private LoadStatusHistoryJpaRepository historyRepository;
+    @Mock
+    private DomainEventPublisher eventPublisher;
+    @Mock
+    private EntityManager entityManager;
 
     @InjectMocks
     private LoadService loadService;
@@ -53,6 +58,10 @@ class LoadServiceTest {
         UUID userId = UUID.randomUUID();
         CreateLoadRequest request = createRequest(UUID.randomUUID());
 
+        Query membershipQuery = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(membershipQuery);
+        when(membershipQuery.setParameter(anyInt(), any())).thenReturn(membershipQuery);
+        when(membershipQuery.getSingleResult()).thenReturn(1L);
         when(loadRepository.save(any(LoadEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var response = loadService.create(userId, request);
@@ -60,6 +69,18 @@ class LoadServiceTest {
         assertThat(response.status()).isEqualTo(LoadStatus.DRAFT);
         assertThat(response.pickupCountry()).isEqualTo("TR");
         verify(historyRepository).save(any());
+    }
+
+    @Test
+    void createRejectsNonMemberCompany() {
+        Query membershipQuery = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(membershipQuery);
+        when(membershipQuery.setParameter(anyInt(), any())).thenReturn(membershipQuery);
+        when(membershipQuery.getSingleResult()).thenReturn(0L);
+
+        assertThatThrownBy(() -> loadService.create(UUID.randomUUID(), createRequest(UUID.randomUUID())))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("Only company members");
     }
 
     @Test
@@ -82,7 +103,9 @@ class LoadServiceTest {
         UUID loadId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, otherUserId)).thenReturn(Optional.empty());
+        LoadEntity load = draftLoad(loadId, UUID.randomUUID());
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
+        mockMembership(0L);
 
         UpdateLoadRequest request = new UpdateLoadRequest(
                 "Title", null, null, null, null, null, null, null, null, null, null, null,
@@ -99,7 +122,7 @@ class LoadServiceTest {
         UUID userId = UUID.randomUUID();
         LoadEntity load = draftLoad(loadId, userId);
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, userId)).thenReturn(Optional.of(load));
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
         when(loadRepository.save(load)).thenReturn(load);
 
         var response = loadService.update(loadId, userId, new UpdateLoadRequest(
@@ -117,7 +140,7 @@ class LoadServiceTest {
         LoadEntity load = draftLoad(loadId, userId);
         load.setStatus(LoadStatus.PUBLISHED);
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, userId)).thenReturn(Optional.of(load));
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
 
         assertThatThrownBy(() -> loadService.update(loadId, userId, new UpdateLoadRequest(
                 "Updated", null, null, null, null, null, null, null, null, null, null, null,
@@ -133,6 +156,7 @@ class LoadServiceTest {
         LoadEntity load = draftLoad(loadId, ownerId);
 
         when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
+        mockMembership(0L);
 
         assertThatThrownBy(() -> loadService.getById(loadId, UUID.randomUUID()))
                 .isInstanceOf(DomainException.class)
@@ -157,7 +181,7 @@ class LoadServiceTest {
         UUID userId = UUID.randomUUID();
         LoadEntity load = draftLoad(loadId, userId);
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, userId)).thenReturn(Optional.of(load));
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
         when(loadRepository.save(load)).thenReturn(load);
         mockCompanyStatus(load.getShipperCompanyId(), "VERIFIED");
 
@@ -174,7 +198,7 @@ class LoadServiceTest {
         UUID userId = UUID.randomUUID();
         LoadEntity load = draftLoad(loadId, userId);
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, userId)).thenReturn(Optional.of(load));
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
         mockCompanyStatus(load.getShipperCompanyId(), "PENDING");
 
         assertThatThrownBy(() -> loadService.publish(loadId, userId))
@@ -183,12 +207,42 @@ class LoadServiceTest {
     }
 
     @Test
+    void cancelPublishedLoadRecordsCancelledStatus() {
+        UUID loadId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        LoadEntity load = draftLoad(loadId, userId);
+        load.setStatus(LoadStatus.PUBLISHED);
+
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
+        when(loadRepository.save(load)).thenReturn(load);
+
+        var response = loadService.cancel(loadId, userId);
+
+        assertThat(response.status()).isEqualTo(LoadStatus.CANCELLED);
+        verify(historyRepository).save(any());
+    }
+
+    @Test
+    void cancelMatchedLoadFails() {
+        UUID loadId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        LoadEntity load = draftLoad(loadId, userId);
+        load.setStatus(LoadStatus.MATCHED);
+
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
+
+        assertThatThrownBy(() -> loadService.cancel(loadId, userId))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("Only draft or published");
+    }
+
+    @Test
     void publishMissingCompanyFails() {
         UUID loadId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         LoadEntity load = draftLoad(loadId, userId);
 
-        when(loadRepository.findByIdAndCreatedByUserId(loadId, userId)).thenReturn(Optional.of(load));
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
         Query query = mock(Query.class);
         when(entityManager.createNativeQuery(anyString())).thenReturn(query);
         when(query.setParameter(1, load.getShipperCompanyId())).thenReturn(query);
@@ -220,6 +274,29 @@ class LoadServiceTest {
         when(entityManager.createNativeQuery("SELECT status FROM companies WHERE id = ?1")).thenReturn(query);
         when(query.setParameter(1, companyId)).thenReturn(query);
         when(query.getSingleResult()).thenReturn(status);
+    }
+
+    @Test
+    void companyMemberCanUpdateCompanyDraft() {
+        UUID loadId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        LoadEntity load = draftLoad(loadId, UUID.randomUUID());
+        when(loadRepository.findById(loadId)).thenReturn(Optional.of(load));
+        mockMembership(1L);
+        when(loadRepository.save(load)).thenReturn(load);
+
+        var response = loadService.update(loadId, memberId, new UpdateLoadRequest(
+                "Ekip güncellemesi", null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null));
+
+        assertThat(response.title()).isEqualTo("Ekip güncellemesi");
+    }
+
+    private void mockMembership(long count) {
+        Query query = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(anyInt(), any())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(count);
     }
 
     private static LoadEntity draftLoad(UUID loadId, UUID userId) {

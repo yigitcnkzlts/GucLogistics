@@ -44,10 +44,21 @@ class ApiClient {
 
   late final Dio _dio;
   final FlutterSecureStorage _storage;
+  Future<bool>? _refreshInFlight;
 
   Dio get dio => _dio;
 
-  Future<bool> _tryRefresh() async {
+  Future<bool> _tryRefresh() {
+    final current = _refreshInFlight;
+    if (current != null) return current;
+    final refresh = _performRefresh();
+    _refreshInFlight = refresh;
+    return refresh.whenComplete(() {
+      if (identical(_refreshInFlight, refresh)) _refreshInFlight = null;
+    });
+  }
+
+  Future<bool> _performRefresh() async {
     final refresh = await _storage.read(key: 'refresh_token');
     if (refresh == null || refresh.isEmpty) return false;
     try {

@@ -15,6 +15,7 @@ import com.guclogistics.shared.event.DomainEventPublisher;
 import com.guclogistics.shared.exception.DomainException;
 import com.guclogistics.shared.exception.ErrorCode;
 import com.guclogistics.shared.featureflag.FeatureFlagService;
+import com.guclogistics.shared.events.identity.UserCompanyRegistrationRequestedEvent;
 import com.guclogistics.shared.security.AuthenticatedUser;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -66,6 +67,12 @@ public class AuthService {
 
         RoleEntity role = roleRepository.findByName(request.role())
                 .orElseThrow(() -> DomainException.business("Role not found"));
+        boolean companyAccount = "SHIPPER".equals(request.role()) || "LOGISTICS_COMPANY".equals(request.role())
+                || "FLEET_OWNER".equals(request.role());
+        if (companyAccount && (request.companyName() == null || request.companyName().isBlank()
+                || request.companyCountry() == null || request.companyCountry().isBlank())) {
+            throw DomainException.business("Company name and country are required for company accounts");
+        }
 
         UserEntity user = new UserEntity();
         user.setEmail(request.email().trim().toLowerCase());
@@ -78,8 +85,13 @@ public class AuthService {
         userRepository.save(user);
 
         eventPublisher.publish(new UserRegisteredEvent(user.getId(), user.getEmail(), role.getName()));
+        if (companyAccount) {
+            eventPublisher.publish(new UserCompanyRegistrationRequestedEvent(
+                    user.getId(), request.role(), request.companyName().trim(), request.companyCountry().toUpperCase()));
+        }
 
-        DeviceContext device = upsertDevice(user.getId(), request.deviceFingerprint(), request.platform(), request.deviceName());
+        DeviceContext device = upsertDevice(user.getId(), request.deviceFingerprint(), request.platform(),
+                request.deviceName());
         return issueTokens(user, device, ip, httpRequest.getHeader("User-Agent"), true, false);
     }
 
@@ -128,7 +140,8 @@ public class AuthService {
             return TokenResponse.mfaChallenge(mfaToken, user.getId());
         }
 
-        DeviceContext device = upsertDevice(user.getId(), request.deviceFingerprint(), request.platform(), request.deviceName());
+        DeviceContext device = upsertDevice(user.getId(), request.deviceFingerprint(), request.platform(),
+                request.deviceName());
         boolean newDevice = device.newDevice();
         if (newDevice) {
             eventPublisher.publish(new SuspiciousLoginDetectedEvent(user.getId(), ip, "Login from new device"));
@@ -152,7 +165,8 @@ public class AuthService {
 
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> DomainException.notFound("User not found"));
-        DeviceContext device = upsertDevice(userId, request.deviceFingerprint(), request.platform(), request.deviceName());
+        DeviceContext device = upsertDevice(userId, request.deviceFingerprint(), request.platform(),
+                request.deviceName());
         return issueTokens(user, device, ip, httpRequest.getHeader("User-Agent"), true, true);
     }
 
@@ -167,7 +181,8 @@ public class AuthService {
                 eventPublisher.publish(new SuspiciousLoginDetectedEvent(
                         revoked.getUserId(), clientIp(httpRequest), "Refresh token reuse detected"));
             });
-            throw new DomainException(ErrorCode.TOKEN_REUSE_DETECTED, "Refresh token invalid or reused", HttpStatus.UNAUTHORIZED);
+            throw new DomainException(ErrorCode.TOKEN_REUSE_DETECTED, "Refresh token invalid or reused",
+                    HttpStatus.UNAUTHORIZED);
         }
 
         if (session.getExpiresAt().isBefore(Instant.now())) {
@@ -221,8 +236,7 @@ public class AuthService {
                         s.getUserAgent(),
                         s.getCreatedAt(),
                         s.getExpiresAt(),
-                        s.getId().equals(user.sessionId())
-                ))
+                        s.getId().equals(user.sessionId())))
                 .toList();
     }
 
@@ -238,17 +252,18 @@ public class AuthService {
     @Transactional(readOnly = true)
     public List<DeviceResponse> listDevices(AuthenticatedUser user) {
         return deviceRepository.findByUserIdOrderByLastSeenAtDesc(user.userId()).stream()
-                .map(d -> new DeviceResponse(d.getId(), d.getPlatform(), d.getDeviceName(), d.getLastSeenAt(), d.isTrusted()))
+                .map(d -> new DeviceResponse(d.getId(), d.getPlatform(), d.getDeviceName(), d.getLastSeenAt(),
+                        d.isTrusted()))
                 .toList();
     }
 
     private TokenResponse issueTokens(UserEntity user, DeviceContext device, String ip, String userAgent,
-                                      boolean publishLogin, boolean mfaVerified) {
+            boolean publishLogin, boolean mfaVerified) {
         return issueTokensWithFamily(user, device, ip, userAgent, UUID.randomUUID(), publishLogin, mfaVerified);
     }
 
     private TokenResponse issueTokensWithFamily(UserEntity user, DeviceContext device, String ip, String userAgent,
-                                                UUID familyId, boolean publishLogin, boolean mfaVerified) {
+            UUID familyId, boolean publishLogin, boolean mfaVerified) {
         Set<String> roles = user.getRoles().stream().map(RoleEntity::getName).collect(Collectors.toSet());
         String refreshToken = generateOpaqueToken();
         UserSessionEntity session = new UserSessionEntity();
@@ -261,8 +276,10 @@ public class AuthService {
         session.setExpiresAt(Instant.now().plus(jwtProperties.getRefreshTokenDays(), ChronoUnit.DAYS));
         sessionRepository.save(session);
 
-        String accessToken = jwtService.createAccessToken(user.getId(), session.getId(), user.getEmail(), roles, mfaVerified);
-        boolean mfaEnabled = mfaSettingsRepository.findById(user.getId()).map(MfaSettingsEntity::isEnabled).orElse(false);
+        String accessToken = jwtService.createAccessToken(user.getId(), session.getId(), user.getEmail(), roles,
+                mfaVerified);
+        boolean mfaEnabled = mfaSettingsRepository.findById(user.getId()).map(MfaSettingsEntity::isEnabled)
+                .orElse(false);
 
         if (publishLogin) {
             eventPublisher.publish(new UserLoggedInEvent(user.getId(), session.getId(), ip, device.newDevice()));
@@ -274,8 +291,7 @@ public class AuthService {
                 jwtProperties.getAccessTokenMinutes() * 60,
                 user.getId(),
                 roles,
-                mfaEnabled
-        );
+                mfaEnabled);
     }
 
     private DeviceContext upsertDevice(UUID userId, String fingerprint, String platform, String deviceName) {

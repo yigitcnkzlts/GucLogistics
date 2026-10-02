@@ -19,12 +19,30 @@ class OffersRepository {
     return list.map((e) => OfferItem.fromJson(Map<String, dynamic>.from(e as Map))).toList();
   }
 
+  Future<List<OfferItem>> listIncoming() async {
+    if (AppConfig.useMockData) return List.of(MockData.offers);
+    final loadsResponse = await _api.dio.get('/api/v1/loads', queryParameters: {'mine': true, 'size': 100});
+    final loads = loadsResponse.data is Map ? ((loadsResponse.data as Map)['content'] as List? ?? const []) : const [];
+    final results = <OfferItem>[];
+    for (final load in loads) {
+      final loadMap = Map<String, dynamic>.from(load as Map);
+      final response = await _api.dio.get('/api/v1/loads/${loadMap['id']}/offers');
+      final offers = response.data is List ? response.data as List : const [];
+      results.addAll(offers.map((item) {
+        final map = Map<String, dynamic>.from(item as Map);
+        map['loadTitle'] = loadMap['title'];
+        return OfferItem.fromJson(map);
+      }));
+    }
+    return results;
+  }
+
   Future<OfferItem> getOffer(String id) async {
     if (AppConfig.useMockData) {
       return MockData.offers.firstWhere((e) => e.id == id, orElse: () => MockData.offers.first);
     }
-    final response = await _api.dio.get('/api/v1/offers/$id');
-    return OfferItem.fromJson(Map<String, dynamic>.from(response.data as Map));
+    final offers = await listMine();
+    return offers.firstWhere((offer) => offer.id == id);
   }
 
   Future<void> submitOffer({
@@ -33,6 +51,7 @@ class OffersRepository {
     required String currency,
     String? message,
     String? vehicleId,
+    String? driverProfileId,
     required String vehiclePlate,
     required String vehicleType,
     required String driverName,
@@ -81,16 +100,24 @@ class OffersRepository {
       );
       return;
     }
+    final companies = await _api.dio.get('/api/v1/companies/mine');
+    final companyList = companies.data is List ? companies.data as List : const [];
+    Map<String, dynamic>? company;
+    for (final item in companyList) {
+      final candidate = Map<String, dynamic>.from(item as Map);
+      if (candidate['type'] == 'LOGISTICS') {
+        company = candidate;
+        break;
+      }
+    }
     await _api.dio.post('/api/v1/loads/$loadId/offers', data: {
-      'offererType': 'DRIVER',
+      'offererType': company == null ? 'DRIVER' : 'COMPANY',
+      'offererId': company?['id'],
       'amount': amount,
       'currency': currency,
       'message': message,
       'vehicleId': vehicleId,
-      'vehiclePlate': vehiclePlate,
-      'vehicleType': vehicleType,
-      'driverName': driverName,
-      'driverPhone': driverPhone,
+      'driverProfileId': driverProfileId,
       'estimatedTransitHours': estimatedTransitHours,
       'availableAt': availableAt.toUtc().toIso8601String(),
     });
@@ -100,6 +127,7 @@ class OffersRepository {
     required String offerId,
     required double amount,
     required String byRole,
+    required int expectedOfferVersion,
     String? message,
   }) async {
     if (AppConfig.useMockData) {
@@ -125,6 +153,7 @@ class OffersRepository {
     await _api.dio.post('/api/v1/offers/$offerId/counter', data: {
       'amount': amount,
       'message': message,
+      'expectedOfferVersion': expectedOfferVersion,
     });
   }
 

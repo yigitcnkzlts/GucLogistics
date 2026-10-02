@@ -3,6 +3,8 @@ package com.guclogistics.offers.api;
 import com.guclogistics.offers.application.OfferService;
 import com.guclogistics.offers.application.dto.CreateOfferRequest;
 import com.guclogistics.offers.application.dto.OfferResponse;
+import com.guclogistics.offers.application.dto.CounterOfferRequest;
+import com.guclogistics.offers.application.dto.OfferRoundResponse;
 import com.guclogistics.shared.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,6 +39,17 @@ public class OfferController {
             @PathVariable UUID id
     ) {
         return offerService.accept(id, user.userId());
+    }
+
+    @PostMapping("/api/v1/offers/{id}/counter")
+    public OfferResponse counter(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id,
+            @Valid @RequestBody CounterOfferRequest request) {
+        return offerService.counter(id, user.userId(), request);
+    }
+
+    @GetMapping("/api/v1/offers/{id}/rounds")
+    public List<OfferRoundResponse> rounds(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        return offerService.rounds(id, user.userId());
     }
 
     @PostMapping("/api/v1/offers/{id}/reject")
